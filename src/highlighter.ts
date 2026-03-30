@@ -31,6 +31,7 @@ import 'prismjs/components/prism-cpp'          // extends c
 import 'prismjs/components/prism-swift'
 import 'prismjs/components/prism-kotlin'
 import 'prismjs/components/prism-docker'       // Dockerfile
+// prism-php requires prism-markup-templating (not imported) — excluded
 
 // Aliases so common fence labels resolve correctly
 const ALIASES: Record<string, string> = {
@@ -42,6 +43,7 @@ const ALIASES: Record<string, string> = {
   py: 'python',
   rb: 'ruby',
   dockerfile: 'docker',
+  php: 'markup', // fallback: render PHP as HTML rather than crashing
   htm: 'markup',
   xml: 'markup',
   md: 'markdown',
@@ -52,10 +54,23 @@ const ALIASES: Record<string, string> = {
  * Returns the original code if the language isn't recognised.
  */
 export function highlight(code: string, lang: string): string {
-  const resolved = ALIASES[lang] ?? lang
-  const grammar = Prism.languages[resolved]
-  if (!grammar) return code
-  return Prism.highlight(code, grammar, resolved)
+  try {
+    const resolved = ALIASES[lang] ?? lang
+    const grammar = Prism.languages[resolved]
+    if (!grammar) return escapeHtml(code)
+    return Prism.highlight(code, grammar, resolved)
+  } catch {
+    // Never let a highlight failure crash the whole render
+    return escapeHtml(code)
+  }
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 /**
