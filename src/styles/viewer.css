@@ -1,2 +1,246 @@
-/* Module 04 will populate this file with all viewer styles.
-   All selectors must be scoped to .markdrive-viewer — never leak into Drive's UI. */
+/* MarkDrive Viewer — Typography & Base Styles
+ * All selectors MUST be scoped to .markdrive-viewer — never leak into Drive's UI.
+ * Inspiration: iA Writer + Notion. Editorial, not developer-oriented.
+ */
+
+/* ─── Container ──────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer {
+  all: revert;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #1a1a1a;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+  box-sizing: border-box;
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Headings ───────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer h1,
+.markdrive-viewer h2,
+.markdrive-viewer h3,
+.markdrive-viewer h4,
+.markdrive-viewer h5,
+.markdrive-viewer h6 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #111;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+
+.markdrive-viewer h1 {
+  font-size: 2em;
+  font-weight: 800;
+  border-bottom: 2px solid #e8e8e8;
+  padding-bottom: 0.3em;
+  margin-top: 0;
+}
+
+.markdrive-viewer h2 {
+  font-size: 1.45em;
+  border-bottom: 1px solid #e8e8e8;
+  padding-bottom: 0.25em;
+}
+
+.markdrive-viewer h3 {
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.markdrive-viewer h4 {
+  font-size: 1em;
+  font-weight: 700;
+  color: #333;
+}
+
+.markdrive-viewer h5,
+.markdrive-viewer h6 {
+  font-size: 0.9em;
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── Body text ──────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer p {
+  margin-top: 0;
+  margin-bottom: 1.1em;
+}
+
+.markdrive-viewer strong {
+  font-weight: 700;
+  color: #111;
+}
+
+.markdrive-viewer em {
+  font-style: italic;
+}
+
+.markdrive-viewer a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.markdrive-viewer a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Horizontal rule ────────────────────────────────────────────────────────── */
+
+.markdrive-viewer hr {
+  border: none;
+  border-top: 2px solid #e8e8e8;
+  margin: 2.5em 0;
+}
+
+/* ─── Lists ──────────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer ul,
+.markdrive-viewer ol {
+  padding-left: 1.75em;
+  margin-top: 0;
+  margin-bottom: 1.1em;
+}
+
+.markdrive-viewer li {
+  margin-bottom: 0.3em;
+}
+
+.markdrive-viewer li > ul,
+.markdrive-viewer li > ol {
+  margin-top: 0.3em;
+  margin-bottom: 0;
+}
+
+/* Task lists (markdown-it-task-lists) */
+.markdrive-viewer .task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+  padding-left: 0.25em;
+}
+
+.markdrive-viewer .task-list-item input[type='checkbox'] {
+  margin-right: 0.5em;
+  transform: translateY(1px);
+  accent-color: #1a73e8;
+}
+
+/* ─── Blockquotes ────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer blockquote {
+  margin: 1.5em 0;
+  padding: 0.75em 1.25em;
+  border-left: 4px solid #d0d0d0;
+  color: #555;
+  font-style: italic;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+
+.markdrive-viewer blockquote p {
+  margin-bottom: 0;
+}
+
+.markdrive-viewer blockquote p + p {
+  margin-top: 0.75em;
+}
+
+/* ─── Inline code ────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  background: #f0f0f0;
+  color: #d63384;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+/* ─── Code blocks ────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer pre {
+  display: block !important; /* override Drive's potential display:none on our own pre */
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1.1em 1.25em;
+  overflow-x: auto;
+  margin: 0 0 1.5em;
+  line-height: 1.55;
+}
+
+.markdrive-viewer pre code {
+  font-size: 0.85em;
+  background: none;
+  color: #24292e;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  white-space: pre;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 0.9em;
+  margin-bottom: 1.5em;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px #dde1e7;
+}
+
+.markdrive-viewer thead {
+  background: #f6f8fa;
+}
+
+.markdrive-viewer th {
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid #dde1e7;
+  color: #333;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.markdrive-viewer td {
+  padding: 9px 14px;
+  border-bottom: 1px solid #eaecef;
+  vertical-align: top;
+}
+
+.markdrive-viewer tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.markdrive-viewer tbody tr:nth-child(even) {
+  background: #fbfbfc;
+}
+
+.markdrive-viewer tbody tr:hover {
+  background: #f0f4ff;
+}
+
+/* ─── Images ─────────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  display: block;
+  margin: 1em 0;
+}
