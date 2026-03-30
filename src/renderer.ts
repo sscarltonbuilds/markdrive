@@ -25,12 +25,17 @@ export function renderMarkdown(source: string): string {
 // ─── Injection ────────────────────────────────────────────────────────────────
 
 /**
- * Replace the contents of `container` with rendered Markdown.
+ * Inject rendered Markdown into `container`, hiding (not removing) Drive's
+ * original <pre> element.
  *
- * ⚠️  We clear children and inject INSIDE the container — never replace the
- *     container element itself. Replacing it breaks Drive's outer layout.
+ * ⚠️  We must NOT remove the <pre> from the DOM. Drive's own MutationObserver
+ *     watches for removed children and immediately restores them. Instead we
+ *     hide the <pre> in-place and insert our viewer as a sibling — Drive sees
+ *     the <pre> still present and leaves it alone.
  */
 export function injectIntoPreview(container: HTMLElement, source: string): void {
+  // Bail out if we've already injected (guard against duplicate calls)
+  if (container.querySelector('.markdrive-viewer')) return
 
   const html = renderMarkdown(source)
 
@@ -41,7 +46,12 @@ export function injectIntoPreview(container: HTMLElement, source: string): void 
   // Store the raw source on the element so the toolbar (Module 05) can access it
   viewer.dataset.rawSource = source
 
-  container.innerHTML = ''
+  // Hide Drive's <pre> without removing it — keeps Drive's restore logic quiet
+  const pre = container.querySelector('pre')
+  if (pre) {
+    pre.style.display = 'none'
+  }
+
   container.appendChild(viewer)
 
   console.log('[MarkDrive] ✓ rendered', source.length, 'chars into preview container')
