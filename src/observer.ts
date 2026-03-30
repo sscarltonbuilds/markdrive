@@ -108,6 +108,7 @@ export class DriveObserver {
   private mutationObserver: MutationObserver | null = null
   private teardownNav: (() => void) | null = null
   private lastUrl: string = ''
+  private lastDetectedFileId: string = ''
   private pendingCheck: ReturnType<typeof setTimeout> | null = null
   private readonly onDetected: DetectionCallback
 
@@ -122,6 +123,7 @@ export class DriveObserver {
     this.teardownNav = interceptNavigation((url) => {
       if (url !== this.lastUrl) {
         this.lastUrl = url
+        this.lastDetectedFileId = '' // reset so navigating back to same file re-fires
         this.scheduleCheck()
       }
     })
@@ -188,6 +190,10 @@ export class DriveObserver {
       return
     }
 
+    // Don't re-fire for a file we already handled — Drive mutations keep coming
+    // after the preview settles, and we only need one detection per file.
+    if (fileId === this.lastDetectedFileId) return
+
     const container = findPreviewContainer()
     if (!container) {
       // File is .md but preview container not in DOM yet — mutations will retry
@@ -195,6 +201,7 @@ export class DriveObserver {
       return
     }
 
+    this.lastDetectedFileId = fileId
     const event: MarkdownFileDetected = { fileId, fileName, previewContainer: container }
     console.log('[MarkDrive] MarkdownFileDetected', {
       fileId,
