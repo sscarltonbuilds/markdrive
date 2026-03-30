@@ -73,64 +73,74 @@ function extractFromDom(container: HTMLElement): string | null {
   return null
 }
 
-// ─── Strategy B: Drive API v3 ────────────────────────────────────────────────
+// ─── Strategy B: Drive API v3 (via background service worker) ────────────────
 //
-// Requires the manifest.json to have:
+// chrome.identity is NOT available in content scripts (MV3 restriction).
+// The background service worker handles the actual fetch. See background.ts.
+//
+// If Strategy B is ever needed in production, add to manifest.json:
 //   "permissions": [..., "identity"],
 //   "oauth2": {
 //     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
 //     "scopes": ["https://www.googleapis.com/auth/drive.readonly"]
 //   }
 //
-// The client_id is obtained from Google Cloud Console → APIs & Services →
+// The client_id comes from Google Cloud Console → APIs & Services →
 // Credentials → Create OAuth 2.0 Client ID (Chrome Extension).
-
-async function fetchViaApi(fileId: string): Promise<string> {
-  const token = await getAuthToken()
-  const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) {
-    throw new Error(`[MarkDrive] Drive API error ${res.status}: ${await res.text()}`)
-  }
-  return res.text()
-}
-
-function getAuthToken(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: false }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        reject(
-          new Error(
-            chrome.runtime.lastError?.message ??
-              'getAuthToken returned no token — OAuth2 not configured in manifest'
-          )
-        )
-      } else {
-        resolve(token)
-      }
-    })
-  })
-}
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Fetch the raw Markdown source for a Drive file.
  *
- * Tries Strategy A (DOM) first. Falls back to Strategy B (Drive API) if the
- * DOM yields nothing.
+ * Tries Strategy A (DOM) up to MAX_RETRIES times. Drive renders the container
+ * before asynchronously populating the <pre> with content, so we need to wait
+ * for the text to arrive. Falls back to Strategy B (Drive API via background
+ * service worker) only if the DOM never populates.
  */
+const MAX_RETRIES = 6
+const RETRY_DELAY_MS = 400
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export async function fetchMarkdownContent(
   fileId: string,
   previewContainer: HTMLElement
 ): Promise<string> {
-  // Strategy A
-  const domText = extractFromDom(previewContainer)
-  if (domText) return domText
+  // Strategy A — retry loop: Drive fills the <pre> asynchronously after the
+  // container appears, so the first attempt may find an empty element.
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const domText = extractFromDom(previewContainer)
+    if (domText) return domText
+    console.debug(`[MarkDrive] fetcher: Strategy A attempt ${attempt}/${MAX_RETRIES} — pre empty, waiting…`)
+    await wait(RETRY_DELAY_MS)
+  }
 
-  // Strategy B
-  console.debug('[MarkDrive] fetcher: Strategy A found nothing — trying Drive API')
-  return fetchViaApi(fileId)
+  // Strategy B — chrome.identity is not available in content scripts (MV3
+  // restriction), so route the request through the background service worker.
+  console.debug('[MarkDrive] fetcher: Strategy A exhausted — falling back to Drive API via background')
+  return fetchViaBackground(fileId)
+}
+
+/**
+ * Ask the background service worker to fetch the file via Drive API v3.
+ * The background script has access to chrome.identity; the content script does not.
+ */
+function fetchViaBackground(fileId: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'FETCH_FILE', payload: { fileId } },
+      (response: { ok: true; content: string } | { ok: false; error: string }) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message))
+        } else if (!response.ok) {
+          reject(new Error(response.error))
+        } else {
+          resolve(response.content)
+        }
+      }
+    )
+  })
 }
