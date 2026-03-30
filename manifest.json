@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "MarkDrive",
+  "version": "0.1.0",
+  "description": "Renders .md files beautifully inside Google Drive's preview pane.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://drive.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://drive.google.com/*"],
+      "js": ["src/content.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MarkDrive"
+  }
+}
