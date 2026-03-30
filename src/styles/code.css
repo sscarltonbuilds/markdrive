@@ -1,0 +1,110 @@
+/* MarkDrive — Code block extras: copy button + language badge
+ * Base code block styles live in viewer.css.
+ * All selectors scoped to .markdrive-viewer.
+ */
+
+/* ─── Code block wrapper ─────────────────────────────────────────────────────── */
+
+.markdrive-viewer pre.markdrive-code-block {
+  position: relative;
+  padding-top: 2.4em; /* room for badge + button */
+}
+
+/* ─── Language badge ─────────────────────────────────────────────────────────── */
+
+.markdrive-viewer .markdrive-code-badge {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ─── Copy button ────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer .markdrive-code-copy {
+  all: unset;
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  height: 22px;
+  padding: 0 9px;
+  background: #eaeaea;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  box-sizing: border-box;
+}
+
+.markdrive-viewer pre.markdrive-code-block:hover .markdrive-code-copy {
+  opacity: 1;
+}
+
+.markdrive-viewer .markdrive-code-copy:hover {
+  background: #ddd;
+  color: #222;
+}
+
+.markdrive-viewer .markdrive-code-copy--success {
+  opacity: 1;
+  background: #d4edda;
+  border-color: #b8ddc8;
+  color: #276749;
+}
+
+/* ─── Prism token colours (minimal, readable) ────────────────────────────────── */
+
+.markdrive-viewer .token.comment,
+.markdrive-viewer .token.prolog,
+.markdrive-viewer .token.doctype,
+.markdrive-viewer .token.cdata {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.markdrive-viewer .token.punctuation { color: #586069; }
+
+.markdrive-viewer .token.property,
+.markdrive-viewer .token.tag,
+.markdrive-viewer .token.boolean,
+.markdrive-viewer .token.number,
+.markdrive-viewer .token.constant,
+.markdrive-viewer .token.symbol { color: #005cc5; }
+
+.markdrive-viewer .token.selector,
+.markdrive-viewer .token.attr-name,
+.markdrive-viewer .token.string,
+.markdrive-viewer .token.char,
+.markdrive-viewer .token.builtin { color: #032f62; }
+
+.markdrive-viewer .token.operator,
+.markdrive-viewer .token.entity,
+.markdrive-viewer .token.url,
+.markdrive-viewer .token.variable { color: #d73a49; }
+
+.markdrive-viewer .token.atrule,
+.markdrive-viewer .token.attr-value,
+.markdrive-viewer .token.keyword { color: #d73a49; }
+
+.markdrive-viewer .token.function,
+.markdrive-viewer .token.class-name { color: #6f42c1; }
+
+.markdrive-viewer .token.regex,
+.markdrive-viewer .token.important { color: #e36209; }
+
+.markdrive-viewer .token.important,
+.markdrive-viewer .token.bold { font-weight: bold; }
+
+.markdrive-viewer .token.italic { font-style: italic; }
