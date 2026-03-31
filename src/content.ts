@@ -1,6 +1,6 @@
 import { DriveObserver } from './observer'
 import { fetchMarkdownContent } from './fetcher'
-import { injectIntoPreview } from './renderer'
+import { injectIntoPreview, injectError } from './renderer'
 import { createToolbar } from './toolbar'
 import type { MarkdownFileDetected } from './types'
 
@@ -32,6 +32,8 @@ async function onMarkdownFileDetected(event: MarkdownFileDetected): Promise<void
     })
   } catch (err) {
     console.error('[MarkDrive] render pipeline failed:', err)
+    const message = err instanceof Error ? err.message : 'Could not load this Markdown file.'
+    injectError(event.previewContainer, `MarkDrive: ${message}`)
   }
 }
 

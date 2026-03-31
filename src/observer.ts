@@ -47,6 +47,8 @@ function isMarkdownFileName(name: string): boolean {
 //     in the preview → Inspect, and update the list below.
 //
 const PREVIEW_CONTAINER_SELECTORS = [
+  // Inline preview pane: aria-label = "Displaying <filename>"
+  '[aria-label^="Displaying "]',
   // Text-file preview: Drive renders raw content inside a scrollable region
   '[role="main"] [role="document"]',
   '[role="main"] [data-id]',
@@ -66,6 +68,71 @@ function findPreviewContainer(): HTMLElement | null {
     }
   }
   return null
+}
+
+// ─── Preview pane detection (folder view with inline preview open) ────────────
+//
+// When a file is previewed inline (Drive folder view, not opened in its own tab)
+// the URL stays on the folder — no file ID in the URL.
+// We read the file name from the preview container's aria-label instead, and
+// try to recover the file ID from nearby DOM data-id attributes.
+//
+
+interface PreviewPaneInfo {
+  fileId: string    // real Drive file ID, or a synthetic "preview:<name>" key
+  fileName: string
+  container: HTMLElement
+}
+
+/**
+ * Try to find the real Drive file ID from the DOM when it isn't in the URL.
+ * Drive's file-list rows carry data-id attributes; the selected row is our target.
+ */
+function extractFileIdFromDom(container: HTMLElement): string | null {
+  // Walk up from the preview container — sometimes the ID is on an ancestor
+  let el: HTMLElement | null = container
+  while (el && el !== document.body) {
+    const id = el.dataset.id ?? el.getAttribute('data-fileid') ?? el.getAttribute('data-itemid')
+    if (id && /^[a-zA-Z0-9_-]{10,}$/.test(id)) return id
+    el = el.parentElement
+  }
+
+  // Look for the selected/focused file row in the file list
+  const candidates = [
+    '[aria-selected="true"][data-id]',
+    '[tabindex="0"][data-id]',
+    '[data-id][aria-label*=".md"]',
+  ]
+  for (const sel of candidates) {
+    const row = document.querySelector<HTMLElement>(sel)
+    if (row?.dataset.id) return row.dataset.id
+  }
+
+  return null
+}
+
+/**
+ * Detect a Markdown file being shown in Drive's inline preview pane.
+ * Returns null if no preview pane is open or the file isn't Markdown.
+ */
+function findPreviewPaneInfo(): PreviewPaneInfo | null {
+  // The preview container's aria-label = "Displaying <filename>"
+  const container = document.querySelector<HTMLElement>('[aria-label^="Displaying "]')
+  if (!container) return null
+
+  const ariaLabel = container.getAttribute('aria-label') ?? ''
+  const match = ariaLabel.match(/^Displaying\s+(.+)$/)
+  if (!match) return null
+
+  const fileName = match[1].trim()
+  if (!isMarkdownFileName(fileName)) return null
+
+  // Best effort: find the real file ID. If we can't, use the name as a
+  // dedup key — Strategy A reads from the <pre> in the DOM so never needs it.
+  const realId = extractFileIdFromDom(container)
+  const fileId = realId ?? `preview:${fileName}`
+
+  return { fileId, fileName, container }
 }
 
 // ─── SPA navigation interception ─────────────────────────────────────────────
@@ -175,38 +242,40 @@ export class DriveObserver {
   }
 
   private check(): void {
+    // ── Path 1: Direct file URL (opened in its own tab / full-page preview) ──
     const url = window.location.href
-    const fileId = extractFileIdFromUrl(url)
-    const fileName = extractFileNameFromTitle()
+    const urlFileId = extractFileIdFromUrl(url)
+    const titleFileName = extractFileNameFromTitle()
 
-    if (!fileId) {
-      // Not a direct file URL — might be folder view; nothing to do yet
+    if (urlFileId && titleFileName && isMarkdownFileName(titleFileName)) {
+      if (urlFileId === this.lastDetectedFileId) return
+
+      const container = findPreviewContainer()
+      if (!container) {
+        console.debug('[MarkDrive] .md file detected via URL, waiting for preview container…')
+        return
+      }
+
+      this.lastDetectedFileId = urlFileId
+      this.emit({ fileId: urlFileId, fileName: titleFileName, previewContainer: container })
       return
     }
 
-    if (!fileName || !isMarkdownFileName(fileName)) {
-      // File open but it's not a .md file
-      console.debug(`[MarkDrive] file detected but not Markdown: "${fileName ?? 'unknown'}"`)
-      return
-    }
+    // ── Path 2: Inline preview pane (folder view, URL stays on folder) ───────
+    const pane = findPreviewPaneInfo()
+    if (!pane) return
 
-    // Don't re-fire for a file we already handled — Drive mutations keep coming
-    // after the preview settles, and we only need one detection per file.
-    if (fileId === this.lastDetectedFileId) return
+    if (pane.fileId === this.lastDetectedFileId) return
 
-    const container = findPreviewContainer()
-    if (!container) {
-      // File is .md but preview container not in DOM yet — mutations will retry
-      console.debug('[MarkDrive] .md file detected, waiting for preview container…')
-      return
-    }
+    this.lastDetectedFileId = pane.fileId
+    this.emit({ fileId: pane.fileId, fileName: pane.fileName, previewContainer: pane.container })
+  }
 
-    this.lastDetectedFileId = fileId
-    const event: MarkdownFileDetected = { fileId, fileName, previewContainer: container }
+  private emit(event: MarkdownFileDetected): void {
     console.log('[MarkDrive] MarkdownFileDetected', {
-      fileId,
-      fileName,
-      previewContainer: container,
+      fileId: event.fileId,
+      fileName: event.fileName,
+      previewContainer: event.previewContainer,
     })
     this.onDetected(event)
   }

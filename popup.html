@@ -5,37 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MarkDrive</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 280px;
-      padding: 16px;
+      width: 300px;
+      padding: 18px 16px 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       color: #212529;
-      margin: 0;
+      background: #fff;
     }
-    h1 {
-      font-size: 16px;
-      margin: 0 0 4px;
-      font-weight: 600;
+    .header { margin-bottom: 14px; }
+    h1 { font-size: 15px; font-weight: 700; color: #111; }
+    .tagline { font-size: 11px; color: #888; margin-top: 2px; }
+
+    label { display: block; font-size: 12px; font-weight: 500; color: #444; margin-bottom: 5px; }
+    input[type="password"] {
+      width: 100%; padding: 7px 10px;
+      border: 1px solid #d0d0d0; border-radius: 6px;
+      font-size: 13px; color: #333; outline: none;
     }
-    p.tagline {
-      font-size: 12px;
-      color: #6c757d;
-      margin: 0 0 16px;
+    input[type="password"]:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+
+    .actions { display: flex; gap: 6px; margin-top: 10px; }
+    button {
+      flex: 1; padding: 7px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
     }
+    #save-btn { background: #1a73e8; color: #fff; }
+    #save-btn:hover { background: #1558b0; }
+    #clear-btn { background: #f1f3f4; color: #555; display: none; }
+    #clear-btn:hover { background: #e8eaed; }
+
     .status {
-      font-size: 12px;
-      color: #198754;
-      padding: 8px 12px;
-      background: #d1e7dd;
-      border-radius: 6px;
+      display: none; margin-top: 10px; padding: 6px 10px;
+      border-radius: 5px; font-size: 11px; font-weight: 500;
     }
+    .status--success { background: #d4edda; color: #1a6334; }
+    .status--error   { background: #f8d7da; color: #842029; }
+    .status--info    { background: #e8eaed; color: #555; }
+
+    .hint {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 11px; color: #999; line-height: 1.5;
+    }
+    .hint a { color: #1a73e8; text-decoration: none; }
   </style>
 </head>
 <body>
-  <h1>MarkDrive</h1>
-  <p class="tagline">Markdown rendering for Google Drive</p>
-  <div class="status">Active on drive.google.com</div>
-  <!-- Module 07 will add API key input here -->
+  <div class="header">
+    <h1>MarkDrive</h1>
+    <div class="tagline">Markdown rendering for Google Drive</div>
+  </div>
+
+  <label for="api-key">Claude API Key</label>
+  <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" />
+
+  <div class="actions">
+    <button id="save-btn">Save key</button>
+    <button id="clear-btn">Remove</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <p class="hint">
+    Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+    Your key is stored locally and never leaves your browser except to call Anthropic's API.
+  </p>
+
+  <script src="src/popup.ts" type="module"></script>
 </body>
 </html>

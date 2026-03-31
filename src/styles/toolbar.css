@@ -7,7 +7,6 @@
   z-index: 100;
   display: flex;
   gap: 6px;
-  /* Module 07 will add more buttons here */
 }
 
 .markdrive-toolbar__btn {
@@ -41,4 +40,32 @@
 
 .markdrive-toolbar__btn:active {
   background: #f0f0f0;
+}
+
+/* ─── Dark toolbar (applied as a class by JS) ────────────────────────────────── */
+
+.markdrive-toolbar--dark .markdrive-toolbar__btn {
+  background: rgba(40, 40, 40, 0.92);
+  border-color: #555;
+  color: #ccc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.markdrive-toolbar--dark .markdrive-toolbar__btn:hover {
+  background: rgba(55, 55, 55, 0.95);
+  border-color: #777;
+  color: #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.markdrive-toolbar--dark .markdrive-toolbar__btn:active {
+  background: rgba(30, 30, 30, 0.95);
+}
+
+/* ─── Print ──────────────────────────────────────────────────────────────────── */
+
+@media print {
+  .markdrive-toolbar {
+    display: none;
+  }
 }
