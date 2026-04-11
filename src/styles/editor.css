@@ -43,6 +43,7 @@ html[data-theme="dark"] .mdp-fmt-toolbar {
 
 .mdp-fmt-btn {
   all: unset;
+  position: relative; /* anchor for custom tooltip */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -60,9 +61,34 @@ html[data-theme="dark"] .mdp-fmt-toolbar {
   flex-shrink: 0;
 }
 
+/* Custom tooltip — faster than the browser's native title delay */
+.mdp-fmt-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 22, 0.85);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 3px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s ease;
+  transition-delay: 0.25s;
+  z-index: 1200;
+}
+
 .mdp-fmt-btn:hover {
   background: rgba(0, 0, 0, 0.07);
   color: #111;
+}
+
+.mdp-fmt-btn[data-tooltip]:hover::after {
+  opacity: 1;
 }
 
 .mdp-fmt-btn:active {
