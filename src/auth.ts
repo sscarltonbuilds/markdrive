@@ -7,7 +7,7 @@ const EXPIRY_KEY  = 'markdriveTokenExpiry'
 
 const CLIENT_ID     = '608826245761-unnnqsbloll8nj0iabjllftaoontcnsd.apps.googleusercontent.com'
 const CLIENT_SECRET = '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'
-const SCOPES        = 'https://www.googleapis.com/auth/drive.file openid email profile'
+const SCOPES        = 'https://www.googleapis.com/auth/drive openid email profile'
 const TOKEN_URL     = 'https://oauth2.googleapis.com/token'
 
 // ─── PKCE helpers ─────────────────────────────────────────────────────────────
