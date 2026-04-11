@@ -63,7 +63,7 @@ export async function signIn(): Promise<{ token: string } | { error: string }> {
 
   return new Promise((resolve) => {
     chrome.identity.launchWebAuthFlow(
-      { url: authUrl.toString(), interactive: true },
+      { url: authUrl.toString(), interactive: true, width: 520, height: 680 },
       async (callbackUrl) => {
         if (chrome.runtime.lastError || !callbackUrl) {
           resolve({ error: chrome.runtime.lastError?.message ?? 'Auth flow cancelled' })
