@@ -7,11 +7,13 @@ import { escapeHtml } from './utils'
 import { renderMermaidBlocks } from './mermaid-renderer'
 import { openTableModal } from './table-modal'
 import { initTableSort, clampTallTables } from './table-features'
+import { processImages } from './image-proxy'
 import './styles/viewer.css'
 import './styles/code.css'
 import './styles/frontmatter.css'
 import './styles/footnotes.css'
 import './styles/link-preview.css'
+import './styles/image.css'
 
 // ─── Parser setup ─────────────────────────────────────────────────────────────
 
@@ -342,6 +344,7 @@ export function decorateViewer(viewer: HTMLElement): void {
   processCallouts(viewer)
   processTables(viewer)
   processLinks(viewer)
+  processImages(viewer)
   addCopyButtons(viewer)
   addHeadingAnchors(viewer)
 }

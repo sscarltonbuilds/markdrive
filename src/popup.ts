@@ -20,8 +20,9 @@ const signInBtn   = document.getElementById('sign-in-btn')  as HTMLButtonElement
 const signOutBtn  = document.getElementById('sign-out-btn') as HTMLButtonElement
 const errorEl     = document.getElementById('error')      as HTMLElement
 
-const themeSegEl  = document.getElementById('theme-seg')  as HTMLElement
-const tocToggleEl = document.getElementById('toc-toggle') as HTMLInputElement
+const themeSegEl      = document.getElementById('theme-seg')       as HTMLElement
+const tocToggleEl     = document.getElementById('toc-toggle')      as HTMLInputElement
+const readTimeToggleEl = document.getElementById('readtime-toggle') as HTMLInputElement
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,14 @@ function initSettings() {
 
   tocToggleEl.addEventListener('change', () => {
     chrome.storage.local.set({ markdrive_toc_open: tocToggleEl.checked })
+  })
+
+  // Show reading time
+  chrome.storage.local.get('markdrive_show_readtime', (result) => {
+    readTimeToggleEl.checked = (result['markdrive_show_readtime'] as boolean | undefined) ?? false
+  })
+  readTimeToggleEl.addEventListener('change', () => {
+    chrome.storage.local.set({ markdrive_show_readtime: readTimeToggleEl.checked })
   })
 }
 

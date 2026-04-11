@@ -67,6 +67,23 @@
   color: #f0f0f0;
 }
 
+.mdp-nav__readtime {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11.5px;
+  color: rgba(0, 0, 0, 0.38);
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mdp-nav--dark .mdp-nav__readtime {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.mdp-nav--light .mdp-nav__readtime {
+  color: rgba(0, 0, 0, 0.38);
+}
+
 .mdp-nav__back {
   all: unset;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

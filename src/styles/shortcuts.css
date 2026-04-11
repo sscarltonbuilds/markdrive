@@ -1,0 +1,113 @@
+/* MarkDrive — Keyboard shortcuts overlay */
+
+.mdp-shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.mdp-shortcuts-overlay--open {
+  opacity: 1;
+}
+
+.mdp-shortcuts-panel {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+  width: 300px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transform: scale(0.96);
+  transition: transform 0.15s ease;
+}
+
+.mdp-shortcuts-overlay--open .mdp-shortcuts-panel {
+  transform: scale(1);
+}
+
+.mdp-shortcuts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mdp-shortcuts-close {
+  all: unset;
+  color: #888;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.mdp-shortcuts-close:hover { background: #f0f0f0; color: #111; }
+
+.mdp-shortcuts-list {
+  padding: 6px 0 10px;
+  margin: 0;
+}
+
+.mdp-shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 16px;
+  gap: 16px;
+}
+
+.mdp-shortcuts-row dt { flex-shrink: 0; }
+
+.mdp-shortcuts-row dd {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+}
+
+.mdp-shortcuts-row kbd {
+  display: inline-block;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 11px;
+  color: #1a1a1a;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+/* ─── Dark mode ────────────────────────────────────────────────────────────── */
+
+html[data-theme="dark"] .mdp-shortcuts-panel {
+  background: #1a1a1a;
+  border-color: #2e2e2e;
+}
+
+html[data-theme="dark"] .mdp-shortcuts-header {
+  color: #e0e0e0;
+  border-bottom-color: #2e2e2e;
+}
+
+html[data-theme="dark"] .mdp-shortcuts-close:hover { background: #2a2a2a; color: #eee; }
+
+html[data-theme="dark"] .mdp-shortcuts-row dd { color: #888; }
+
+html[data-theme="dark"] .mdp-shortcuts-row kbd {
+  background: #252525;
+  border-color: #3a3a3a;
+  color: #ccc;
+}

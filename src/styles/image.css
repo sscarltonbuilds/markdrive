@@ -1,0 +1,53 @@
+/* MarkDrive — Image styles */
+
+.markdrive-viewer .mdp-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: block;
+  margin: 1em 0;
+}
+
+/* Loading shimmer while Drive images are being proxied */
+.markdrive-viewer .mdp-img--loading {
+  min-width: 120px;
+  min-height: 80px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: mdp-img-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes mdp-img-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Error state — shown when image fails to load */
+.markdrive-viewer .mdp-img--error {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  min-height: 48px;
+  padding: 8px 16px;
+  background: var(--md-pre-bg, #f6f8fa);
+  border: 1px dashed var(--md-pre-border, #dde1e7);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--md-muted, #888);
+}
+
+/* Dark mode */
+.markdrive-viewer[data-theme="dark"] .mdp-img--loading {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdrive-viewer:not([data-theme="light"]) .mdp-img--loading {
+    background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+  }
+}

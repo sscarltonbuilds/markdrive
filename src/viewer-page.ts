@@ -10,8 +10,12 @@ import { renderMermaidBlocks } from './mermaid-renderer'
 import { createNavbar } from './navbar'
 import { buildToc } from './toc'
 import { clampTallTables } from './table-features'
+import { initKeyboardShortcuts, closeShortcutsOverlay } from './keyboard'
+import { initSearch } from './search'
 import { escapeHtml } from './utils'
 import './styles/viewer-page.css'
+import './styles/search.css'
+import './styles/shortcuts.css'
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -90,13 +94,51 @@ chrome.runtime.sendMessage(
       renderError(response.error)
       return
     }
-    renderContent(response.content)
+    void renderContent(response.content)
   }
 )
 
+// ─── Persistent scroll ────────────────────────────────────────────────────────
+
+const SCROLL_KEY = `mdp-scroll-${fileId}`
+let scrollSaveTimer: ReturnType<typeof setTimeout>
+
+function saveScroll() {
+  clearTimeout(scrollSaveTimer)
+  scrollSaveTimer = setTimeout(() => {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY))
+  }, 300)
+}
+
+function restoreScroll() {
+  const saved = sessionStorage.getItem(SCROLL_KEY)
+  if (saved) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' })
+    })
+  }
+}
+
+// ─── Read time ────────────────────────────────────────────────────────────────
+
+function calcReadTime(source: string): string {
+  const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+  const words = body.trim().split(/\s+/).filter(Boolean).length
+  const minutes = Math.max(1, Math.round(words / 200))
+  return `${minutes} min read`
+}
+
+function getShowReadTime(): Promise<boolean> {
+  return new Promise(resolve => {
+    chrome.storage.local.get('markdrive_show_readtime', res => {
+      resolve(res['markdrive_show_readtime'] === true)
+    })
+  })
+}
+
 // ─── Render ───────────────────────────────────────────────────────────────────
 
-function renderContent(source: string): void {
+async function renderContent(source: string): Promise<void> {
   root.innerHTML = ''
 
   const viewer = document.createElement('div')
@@ -110,7 +152,7 @@ function renderContent(source: string): void {
   // Clamp tall tables — must run after append so scrollHeight is available
   clampTallTables(viewer)
 
-  // Raw source pre (hidden by default, toggled by toolbar)
+  // Raw source pre (hidden by default, toggled by nav)
   const rawPre = document.createElement('pre')
   rawPre.className = 'mdp-raw-source'
   rawPre.style.display = 'none'
@@ -120,9 +162,17 @@ function renderContent(source: string): void {
   // TOC — must build after decorateViewer so heading IDs exist
   const tocToggle = buildToc(viewer)
 
-  // Navbar — replaces back button + floating toolbar
-  createNavbar({
+  // Read time (optional setting)
+  const showReadTime = await getShowReadTime()
+  const readTime = showReadTime ? calcReadTime(source) : undefined
+
+  // Search
+  const { open: openSearch, close: closeSearch } = initSearch(viewer)
+
+  // Navbar
+  const navbar = createNavbar({
     fileName,
+    readTime,
     onBack() {
       if (!isNaN(driveTabId)) {
         chrome.runtime.sendMessage({ type: 'SWITCH_TO_TAB', payload: { tabId: driveTabId } })
@@ -134,6 +184,21 @@ function renderContent(source: string): void {
     },
     tocToggle,
   })
+
+  // Keyboard shortcuts
+  initKeyboardShortcuts({
+    onToggleRaw:  () => navbar.toggleView(),
+    onToggleToc:  tocToggle,
+    onOpenSearch: openSearch,
+    onEscape: () => {
+      closeShortcutsOverlay()
+      closeSearch()
+    },
+  })
+
+  // Persistent scroll
+  restoreScroll()
+  window.addEventListener('scroll', saveScroll, { passive: true })
 
   void renderMermaidBlocks(viewer)
 

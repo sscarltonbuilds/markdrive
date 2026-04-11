@@ -13,6 +13,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true // keep message channel open for async response
   }
 
+  if (message.type === 'FETCH_IMAGE') {
+    const { fileId } = message.payload as { fileId: string }
+    handleFetchImage(fileId).then(sendResponse).catch((err: Error) => {
+      sendResponse({ ok: false, error: err.message })
+    })
+    return true
+  }
+
   if (message.type === 'CHECK_MODIFIED') {
     const { fileId } = message.payload as { fileId: string }
     handleCheckModified(fileId).then(sendResponse).catch((err: Error) => {
@@ -53,6 +61,25 @@ async function handleFetchFile(fileId: string): Promise<{ ok: true; content: str
     if (!res.ok) throw new Error(`Drive API ${res.status}`)
     const content = await res.text()
     return { ok: true, content }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+async function handleFetchImage(fileId: string): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
+  try {
+    let token = await getStoredToken()
+    if (!token) return { ok: false, error: 'Not signed in' }
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return { ok: false, error: `Drive API ${res.status}` }
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg'
+    const buffer = await res.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const dataUrl = `data:${contentType};base64,${btoa(binary)}`
+    return { ok: true, dataUrl }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }

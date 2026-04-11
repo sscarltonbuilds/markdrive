@@ -12,9 +12,14 @@ type Theme = 'light' | 'dark' | 'system'
 
 export interface NavbarOptions {
   fileName:       string
+  readTime?:      string        // e.g. "4 min read" — only shown when set
   onBack:         () => void
   onSourceToggle: (showingRaw: boolean) => void
   tocToggle:      (() => void) | null
+}
+
+export interface NavbarController {
+  toggleView: () => void
 }
 
 const HAMBURGER_SVG = `
@@ -24,7 +29,7 @@ const HAMBURGER_SVG = `
     <rect x="2" y="11" width="12" height="1.5" rx="0.75" fill="currentColor"/>
   </svg>`
 
-export function createNavbar(opts: NavbarOptions): void {
+export function createNavbar(opts: NavbarOptions): NavbarController {
   const nav = document.createElement('header')
   nav.className = 'mdp-nav'
 
@@ -51,6 +56,13 @@ export function createNavbar(opts: NavbarOptions): void {
   title.textContent = opts.fileName.replace(/\.(md|markdown|mdown|mkd)$/i, '')
   title.title = opts.fileName
   left.appendChild(title)
+
+  if (opts.readTime) {
+    const badge = document.createElement('span')
+    badge.className = 'mdp-nav__readtime'
+    badge.textContent = opts.readTime
+    left.appendChild(badge)
+  }
 
   // Back to Drive
   const backBtn = document.createElement('button')
@@ -87,6 +99,7 @@ export function createNavbar(opts: NavbarOptions): void {
   }
   renderedBtn.addEventListener('click', () => setView(false))
   rawBtn.addEventListener('click',      () => setView(true))
+  function toggleView() { setView(!showingRaw) }
 
   segment.appendChild(renderedBtn)
   segment.appendChild(rawBtn)
@@ -139,4 +152,6 @@ export function createNavbar(opts: NavbarOptions): void {
   nav.appendChild(left)
   nav.appendChild(right)
   document.body.insertBefore(nav, document.body.firstChild)
+
+  return { toggleView }
 }

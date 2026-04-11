@@ -1,0 +1,119 @@
+/* MarkDrive — In-document search bar */
+
+.mdp-search-bar {
+  position: fixed;
+  top: 56px; /* below navbar with a gap */
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #dde1e7;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 8000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transform: translateY(-6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.mdp-search-bar--open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.mdp-search-input {
+  all: unset;
+  width: 200px;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.mdp-search-input::placeholder { color: #aaa; }
+.mdp-search-input::-webkit-search-cancel-button { display: none; }
+
+.mdp-search-count {
+  font-size: 11.5px;
+  color: #888;
+  white-space: nowrap;
+  min-width: 54px;
+  text-align: right;
+}
+
+.mdp-search-count:not(:empty) {
+  border-left: 1px solid #e0e0e0;
+  padding-left: 8px;
+  margin-left: 2px;
+}
+
+.mdp-search-nav,
+.mdp-search-close {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+.mdp-search-nav:hover,
+.mdp-search-close:hover {
+  background: #f0f0f0;
+  color: #111;
+}
+
+.mdp-search-close { font-size: 12px; }
+
+/* ─── Match highlights ─────────────────────────────────────────────────────── */
+
+.markdrive-viewer mark.mdp-search-mark {
+  background: rgba(255, 213, 0, 0.55);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.markdrive-viewer mark.mdp-search-mark--current {
+  background: rgba(255, 153, 0, 0.75);
+  outline: 2px solid rgba(255, 140, 0, 0.45);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* ─── Dark mode ────────────────────────────────────────────────────────────── */
+
+html[data-theme="dark"] .mdp-search-bar {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+html[data-theme="dark"] .mdp-search-input { color: #e0e0e0; }
+
+html[data-theme="dark"] .mdp-search-count:not(:empty) {
+  border-left-color: #333;
+}
+
+html[data-theme="dark"] .mdp-search-nav:hover,
+html[data-theme="dark"] .mdp-search-close:hover {
+  background: #2a2a2a;
+  color: #eee;
+}
+
+html[data-theme="dark"] .markdrive-viewer mark.mdp-search-mark {
+  background: rgba(200, 160, 0, 0.35);
+}
+
+html[data-theme="dark"] .markdrive-viewer mark.mdp-search-mark--current {
+  background: rgba(220, 140, 0, 0.55);
+  outline-color: rgba(220, 130, 0, 0.45);
+}
