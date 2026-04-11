@@ -338,16 +338,45 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
 // ── Dropdown / picker state ───────────────────────────────────────────────────
 
 let activePanel: HTMLElement | null = null
+let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelHoverClose() {
+  if (hoverCloseTimer) { clearTimeout(hoverCloseTimer); hoverCloseTimer = null }
+}
+
+function scheduleHoverClose() {
+  cancelHoverClose()
+  hoverCloseTimer = setTimeout(() => { closeActivePanel(); hoverCloseTimer = null }, 120)
+}
 
 function closeActivePanel() {
   if (!activePanel) return
   const closing = activePanel   // capture — activePanel may change before transitionend
   activePanel = null
   closing.classList.remove('mdp-fmt-panel--open')
-  // Remove after transition; fallback timeout in case transitionend doesn't fire
   const cleanup = () => { if (!closing.classList.contains('mdp-fmt-panel--open')) closing.remove() }
   closing.addEventListener('transitionend', cleanup, { once: true })
   setTimeout(cleanup, 200)
+}
+
+function openPanelFor(triggerEl: HTMLElement, panel: HTMLElement) {
+  cancelHoverClose()
+  if (activePanel === panel) return
+  closeActivePanel()
+  const rect = triggerEl.getBoundingClientRect()
+  panel.style.left = `${rect.left}px`
+  panel.style.top  = `${rect.bottom + 4}px`
+  document.body.appendChild(panel)
+  void panel.offsetHeight
+  panel.classList.add('mdp-fmt-panel--open')
+  activePanel = panel
+}
+
+function attachHover(el: HTMLElement, panel: HTMLElement) {
+  el.addEventListener('mouseenter', () => openPanelFor(el, panel))
+  el.addEventListener('mouseleave', scheduleHoverClose)
+  panel.addEventListener('mouseenter', cancelHoverClose)
+  panel.addEventListener('mouseleave', scheduleHoverClose)
 }
 
 // ── Toolbar builder ───────────────────────────────────────────────────────────
@@ -411,18 +440,11 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       el.addEventListener('mousedown', (e) => {
         e.preventDefault()
-        e.stopPropagation()   // prevent document close-listener from firing on this click
+        e.stopPropagation()
         if (activePanel === panel) { closeActivePanel(); return }
-        closeActivePanel()
-
-        const rect = el.getBoundingClientRect()
-        panel.style.left = `${rect.left}px`
-        panel.style.top  = `${rect.bottom + 4}px`
-        document.body.appendChild(panel)
-        void panel.offsetHeight
-        panel.classList.add('mdp-fmt-panel--open')
-        activePanel = panel
+        openPanelFor(el, panel)
       })
+      attachHover(el, panel)
 
       wrap.appendChild(el)
       bar.appendChild(wrap)
@@ -499,18 +521,11 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       el.addEventListener('mousedown', (e) => {
         e.preventDefault()
-        e.stopPropagation()   // prevent document close-listener from firing on this click
+        e.stopPropagation()
         if (activePanel === panel) { closeActivePanel(); return }
-        closeActivePanel()
-
-        const rect = el.getBoundingClientRect()
-        panel.style.left = `${rect.left}px`
-        panel.style.top  = `${rect.bottom + 4}px`
-        document.body.appendChild(panel)
-        void panel.offsetHeight
-        panel.classList.add('mdp-fmt-panel--open')
-        activePanel = panel
+        openPanelFor(el, panel)
       })
+      attachHover(el, panel)
 
       wrap.appendChild(el)
       bar.appendChild(wrap)
