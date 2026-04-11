@@ -2,7 +2,7 @@
 // Handles requests that content scripts cannot make directly (MV3 restrictions).
 
 // FETCH_FILE: content script asks us to fetch a Drive file via API v3.
-import { getStoredToken, signIn } from './auth'
+import { getStoredToken, signIn, clearToken } from './auth'
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'FETCH_FILE') {
@@ -77,17 +77,36 @@ async function handleFetchFile(fileId: string): Promise<{ ok: true; content: str
 async function handleSaveFile(fileId: string, content: string): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     let token = await getStoredToken()
-    if (!token) return { ok: false, error: 'Not signed in' }
-    const url = `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media`
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-      body: content,
-    })
-    if (!res.ok) return { ok: false, error: `Drive API ${res.status}` }
+    if (!token) {
+      const result = await signIn()
+      if ('error' in result) return { ok: false, error: result.error }
+      token = result.token
+    }
+
+    const doSave = async (tok: string) => fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(fileId)}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'text/plain; charset=utf-8' },
+        body: content,
+      }
+    )
+
+    let res = await doSave(token)
+
+    // 401/403 can mean the token was issued with the old drive.readonly scope.
+    // Clear it, re-auth with the new drive.file scope, and retry once.
+    if (res.status === 401 || res.status === 403) {
+      await clearToken()
+      const result = await signIn()
+      if ('error' in result) return { ok: false, error: result.error }
+      res = await doSave(result.token)
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      return { ok: false, error: `Drive API ${res.status}: ${body.slice(0, 200)}` }
+    }
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
