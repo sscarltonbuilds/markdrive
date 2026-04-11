@@ -213,6 +213,9 @@ function mountEditMode(
   navbar: NavbarController,
   autosaveEnabled: boolean
 ): void {
+  // Read theme from the HTML attribute — always current, set synchronously by applyTheme()
+  const activeTheme = (document.documentElement.dataset['theme'] as 'light' | 'dark' | undefined) === 'dark' ? 'dark' : 'light'
+
   // Build split container
   const split = document.createElement('div')
   split.className = 'mdp-split'
@@ -249,9 +252,6 @@ function mountEditMode(
   let autosaveTimer: ReturnType<typeof setTimeout>
   let mermaidDebounce: ReturnType<typeof setTimeout>
   let previewDebounce: ReturnType<typeof setTimeout>
-
-  // Read theme from the HTML attribute — always current, set synchronously by applyTheme()
-  const activeTheme = (document.documentElement.dataset['theme'] as 'light' | 'dark' | undefined) === 'dark' ? 'dark' : 'light'
 
   const editor = createEditor({
     initialSource: source,
