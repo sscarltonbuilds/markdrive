@@ -13,6 +13,7 @@ export interface ShortcutHandlers {
   onToggleRaw:  () => void
   onToggleToc:  (() => void) | null
   onOpenSearch: () => void
+  onSave:       (() => void) | null
   onEscape:     () => void
 }
 
@@ -24,6 +25,13 @@ export function initKeyboardShortcuts(handlers: ShortcutHandlers): void {
       target.tagName === 'TEXTAREA' ||
       target.isContentEditable
     ) return
+
+    // Ctrl/Cmd+S → save
+    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      handlers.onSave?.()
+      return
+    }
 
     // Ctrl/Cmd+F or / → search
     if ((e.key === 'f' && (e.ctrlKey || e.metaKey)) || e.key === '/') {
@@ -52,8 +60,9 @@ export function initKeyboardShortcuts(handlers: ShortcutHandlers): void {
 // ─── Shortcuts overlay ────────────────────────────────────────────────────────
 
 const SHORTCUTS = [
-  { key: 'r',        desc: 'Toggle raw / rendered' },
+  { key: 'r',        desc: 'Toggle Read / Edit mode' },
   { key: 't',        desc: 'Toggle table of contents' },
+  { key: 'Ctrl + S', desc: 'Save file' },
   { key: 'Ctrl + F', desc: 'Search in document' },
   { key: '/',        desc: 'Search in document' },
   { key: '?',        desc: 'Show / hide shortcuts' },

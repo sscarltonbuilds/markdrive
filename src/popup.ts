@@ -20,9 +20,10 @@ const signInBtn   = document.getElementById('sign-in-btn')  as HTMLButtonElement
 const signOutBtn  = document.getElementById('sign-out-btn') as HTMLButtonElement
 const errorEl     = document.getElementById('error')      as HTMLElement
 
-const themeSegEl      = document.getElementById('theme-seg')       as HTMLElement
-const tocToggleEl     = document.getElementById('toc-toggle')      as HTMLInputElement
+const themeSegEl       = document.getElementById('theme-seg')       as HTMLElement
+const tocToggleEl      = document.getElementById('toc-toggle')      as HTMLInputElement
 const readTimeToggleEl = document.getElementById('readtime-toggle') as HTMLInputElement
+const autosaveToggleEl = document.getElementById('autosave-toggle') as HTMLInputElement
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,14 @@ function initSettings() {
   })
   readTimeToggleEl.addEventListener('change', () => {
     chrome.storage.local.set({ markdrive_show_readtime: readTimeToggleEl.checked })
+  })
+
+  // Autosave while editing
+  chrome.storage.local.get('markdrive_autosave', (result) => {
+    autosaveToggleEl.checked = (result['markdrive_autosave'] as boolean | undefined) ?? false
+  })
+  autosaveToggleEl.addEventListener('change', () => {
+    chrome.storage.local.set({ markdrive_autosave: autosaveToggleEl.checked })
   })
 }
 

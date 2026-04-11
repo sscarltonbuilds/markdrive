@@ -1,0 +1,443 @@
+/* MarkDrive — Split-view editor styles */
+
+/* ─── Body state ──────────────────────────────────────────────────────────── */
+
+/* Extra top padding when toolbar is visible (navbar 48px + toolbar 36px) */
+body.mdp-edit-mode {
+  padding-top: 84px !important;
+  padding-bottom: 28px !important; /* clear status bar */
+}
+
+/* ─── Formatting toolbar ─────────────────────────────────────────────────── */
+
+.mdp-fmt-toolbar {
+  position: fixed;
+  top: 48px; /* flush under navbar */
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Slide in from above on entry */
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+html[data-theme="dark"] .mdp-fmt-toolbar {
+  background: rgba(22, 22, 24, 0.96);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.mdp-fmt-toolbar--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.mdp-fmt-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mdp-fmt-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: #111;
+}
+
+.mdp-fmt-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme="dark"] .mdp-fmt-btn { color: #aaa; }
+html[data-theme="dark"] .mdp-fmt-btn:hover { background: rgba(255,255,255,0.1); color: #eee; }
+html[data-theme="dark"] .mdp-fmt-btn:active { background: rgba(255,255,255,0.15); }
+
+.mdp-fmt-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .mdp-fmt-sep { background: rgba(255,255,255,0.12); }
+
+.mdp-fmt-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #aaa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .mdp-fmt-hint { color: #555; }
+
+/* ─── Split pane container ────────────────────────────────────────────────── */
+
+.mdp-split {
+  display: grid;
+  grid-template-columns: var(--split-left, 50%) 4px 1fr;
+  height: calc(100vh - 84px); /* viewport minus navbar + toolbar */
+  overflow: hidden;
+  /* Entry animation */
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.mdp-split--visible {
+  opacity: 1;
+}
+
+/* ─── Editor pane ─────────────────────────────────────────────────────────── */
+
+.mdp-editor-pane {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="dark"] .mdp-editor-pane {
+  border-right-color: rgba(255, 255, 255, 0.06);
+}
+
+/* CodeMirror fills the pane */
+.mdp-editor-pane .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.mdp-editor-pane .cm-scroller {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ─── Draggable divider ──────────────────────────────────────────────────── */
+
+.mdp-editor-divider {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.mdp-editor-divider::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: 0 -3px; /* wider hit target */
+}
+
+.mdp-editor-divider:hover,
+.mdp-editor-divider--dragging {
+  background: rgba(26, 115, 232, 0.35);
+}
+
+/* ─── Preview pane ────────────────────────────────────────────────────────── */
+
+.mdp-preview-pane {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--md-bg, #fff);
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="dark"] .mdp-preview-pane {
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+/* The preview .markdrive-viewer inside the pane */
+.mdp-preview-pane .markdrive-viewer {
+  height: auto !important;
+  overflow-y: visible !important;
+  transition: opacity 0.1s ease; /* subtle flash on re-render */
+}
+
+/* ─── Status bar ──────────────────────────────────────────────────────────── */
+
+.mdp-status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: rgba(246, 248, 250, 0.97);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11.5px;
+  color: #888;
+  /* Slide up from bottom on entry */
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+html[data-theme="dark"] .mdp-status-bar {
+  background: rgba(22, 22, 24, 0.97);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.mdp-status-bar--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.mdp-status-pos { font-variant-numeric: tabular-nums; }
+
+.mdp-status-sep {
+  color: rgba(0, 0, 0, 0.2);
+  font-size: 10px;
+}
+
+html[data-theme="dark"] .mdp-status-sep { color: rgba(255, 255, 255, 0.15); }
+
+.mdp-status-words { color: #aaa; }
+
+.mdp-status-unsaved {
+  margin-left: auto;
+  color: #f59e0b;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.mdp-status-unsaved--visible { opacity: 1; }
+
+/* ─── Save button (in navbar) ────────────────────────────────────────────── */
+
+.mdp-nav__save {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #333;
+  background: transparent;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, opacity 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* Hidden by default */
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.1s, color 0.1s;
+}
+
+.mdp-nav__save--visible {
+  opacity: 1;
+  pointer-events: all;
+  transform: scale(1);
+}
+
+.mdp-nav__save:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.mdp-nav__save--saving {
+  color: #888;
+  pointer-events: none;
+}
+
+.mdp-nav__save--saved {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.3);
+  background: rgba(22, 163, 74, 0.06);
+}
+
+.mdp-nav__save--error {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+/* Spinner icon inside save button */
+.mdp-nav__save-spinner {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: mdp-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes mdp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Unsaved dot on title */
+.mdp-nav__unsaved-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-left: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.mdp-nav__unsaved-dot--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Dark navbar overrides */
+.mdp-nav--dark .mdp-nav__save {
+  color: #bbb;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.mdp-nav--dark .mdp-nav__save:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #eee;
+}
+
+.mdp-nav--dark .mdp-nav__save--saved {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+  background: rgba(74, 222, 128, 0.07);
+}
+
+.mdp-nav--dark .mdp-nav__save--error {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.07);
+}
+
+/* ─── Conflict dialog ────────────────────────────────────────────────────── */
+
+.mdp-conflict-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9500;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.mdp-conflict-overlay--open { opacity: 1; }
+
+.mdp-conflict-panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  width: 360px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transform: scale(0.96);
+  transition: transform 0.15s ease;
+}
+
+.mdp-conflict-overlay--open .mdp-conflict-panel { transform: scale(1); }
+
+html[data-theme="dark"] .mdp-conflict-panel {
+  background: #1e1e1e;
+  border: 1px solid #333;
+}
+
+.mdp-conflict-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  margin: 0 0 8px;
+}
+
+html[data-theme="dark"] .mdp-conflict-title { color: #e0e0e0; }
+
+.mdp-conflict-body {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+html[data-theme="dark"] .mdp-conflict-body { color: #999; }
+
+.mdp-conflict-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mdp-conflict-btn {
+  all: unset;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.mdp-conflict-btn--cancel {
+  color: #666;
+  background: #f0f0f0;
+}
+
+.mdp-conflict-btn--cancel:hover { background: #e4e4e4; }
+
+.mdp-conflict-btn--discard {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.mdp-conflict-btn--discard:hover { background: rgba(220, 38, 38, 0.15); }
+
+.mdp-conflict-btn--overwrite {
+  color: #fff;
+  background: #1a73e8;
+}
+
+.mdp-conflict-btn--overwrite:hover { background: #1558b0; }
+
+html[data-theme="dark"] .mdp-conflict-btn--cancel {
+  color: #aaa;
+  background: #2a2a2a;
+}
+
+html[data-theme="dark"] .mdp-conflict-btn--cancel:hover { background: #333; }
