@@ -1,0 +1,49 @@
+/* MarkDrive — Link URL preview tooltip */
+
+.markdrive-viewer .mdp-link {
+  position: relative;
+}
+
+.markdrive-viewer .mdp-link::after {
+  content: attr(data-preview);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 7px);
+  background: #1a1a1a;
+  color: #e8e8e8;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 500;
+  /* Prevent tooltip from being clipped by overflow:hidden ancestors */
+  transform: translateZ(0);
+}
+
+.markdrive-viewer .mdp-link:hover::after {
+  opacity: 1;
+}
+
+/* Dark mode — slightly lighter background for contrast */
+.markdrive-viewer[data-theme="dark"] .mdp-link::after {
+  background: #2e2e2e;
+  color: #d0d0d0;
+  border: 1px solid #444;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markdrive-viewer:not([data-theme="light"]) .mdp-link::after {
+    background: #2e2e2e;
+    color: #d0d0d0;
+    border: 1px solid #444;
+  }
+}

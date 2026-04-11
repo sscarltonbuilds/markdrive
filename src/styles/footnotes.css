@@ -1,0 +1,53 @@
+/* MarkDrive — Footnote styles (markdown-it-footnote output) */
+
+/* Inline footnote reference superscript */
+.markdrive-viewer .footnote-ref {
+  font-size: 0.72em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.markdrive-viewer .footnote-ref a {
+  color: var(--md-link, #0969da);
+  text-decoration: none;
+  padding: 0 1px;
+}
+
+.markdrive-viewer .footnote-ref a:hover {
+  text-decoration: underline;
+}
+
+/* Footnote section at the bottom */
+.markdrive-viewer .footnotes-sep {
+  border: none;
+  border-top: 1px solid var(--md-hr, #d0d7de);
+  margin: 2.5em 0 1.5em;
+}
+
+.markdrive-viewer .footnotes {
+  font-size: 0.875em;
+  color: var(--md-muted, #666);
+}
+
+.markdrive-viewer .footnotes ol {
+  padding-left: 1.5em;
+  margin: 0;
+}
+
+.markdrive-viewer .footnotes li {
+  margin-bottom: 0.4em;
+  line-height: 1.55;
+}
+
+/* Back-reference arrow */
+.markdrive-viewer .footnote-backref {
+  color: var(--md-link, #0969da);
+  text-decoration: none;
+  font-style: normal;
+  margin-left: 4px;
+  font-size: 0.9em;
+}
+
+.markdrive-viewer .footnote-backref:hover {
+  text-decoration: underline;
+}

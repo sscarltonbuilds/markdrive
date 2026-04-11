@@ -13,6 +13,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true // keep message channel open for async response
   }
 
+  if (message.type === 'CHECK_MODIFIED') {
+    const { fileId } = message.payload as { fileId: string }
+    handleCheckModified(fileId).then(sendResponse).catch((err: Error) => {
+      sendResponse({ ok: false, error: err.message })
+    })
+    return true
+  }
+
   if (message.type === 'OPEN_VIEWER') {
     const { fileId, fileName } = message.payload as { fileId: string; fileName: string }
     const driveTabId = sender.tab?.id
@@ -45,6 +53,20 @@ async function handleFetchFile(fileId: string): Promise<{ ok: true; content: str
     if (!res.ok) throw new Error(`Drive API ${res.status}`)
     const content = await res.text()
     return { ok: true, content }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+async function handleCheckModified(fileId: string): Promise<{ ok: true; modifiedTime: string } | { ok: false; error: string }> {
+  try {
+    let token = await getStoredToken()
+    if (!token) return { ok: false, error: 'Not signed in' }
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=modifiedTime`
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return { ok: false, error: `Drive API ${res.status}` }
+    const { modifiedTime } = await res.json() as { modifiedTime: string }
+    return { ok: true, modifiedTime }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }

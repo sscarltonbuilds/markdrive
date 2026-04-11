@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it'
 import taskLists from 'markdown-it-task-lists'
+import footnote from 'markdown-it-footnote'
 import DOMPurify from 'dompurify'
 import { highlight, displayLabel } from './highlighter'
 import { escapeHtml } from './utils'
@@ -8,6 +9,9 @@ import { openTableModal } from './table-modal'
 import { initTableSort, clampTallTables } from './table-features'
 import './styles/viewer.css'
 import './styles/code.css'
+import './styles/frontmatter.css'
+import './styles/footnotes.css'
+import './styles/link-preview.css'
 
 // ─── Parser setup ─────────────────────────────────────────────────────────────
 
@@ -24,19 +28,133 @@ const md = new MarkdownIt({
     const label = lang ? displayLabel(lang) : ''
     return `<pre class="markdrive-code-block" data-lang="${label}"><code class="language-${lang}">${highlighted}</code></pre>`
   },
-}).use(taskLists)
+}).use(taskLists).use(footnote)
+
+// ─── Frontmatter ─────────────────────────────────────────────────────────────
+
+type FrontmatterValue = string | string[] | boolean
+
+interface FrontmatterData {
+  [key: string]: FrontmatterValue
+}
+
+/**
+ * Strip YAML frontmatter (--- blocks) from source and parse key/value pairs.
+ * Handles strings, inline arrays ([a, b, c]), and booleans.
+ */
+function parseFrontmatter(source: string): { data: FrontmatterData; body: string } {
+  const m = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
+  if (!m) return { data: {}, body: source }
+
+  const body = source.slice(m[0].length)
+  const data: FrontmatterData = {}
+
+  for (const line of m[1].split('\n')) {
+    const kv = line.match(/^([\w-]+):\s*(.+)$/)
+    if (!kv) continue
+    const [, key, raw] = kv
+    const val = raw.trim()
+    if (val.startsWith('[') && val.endsWith(']')) {
+      data[key] = val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''))
+    } else if (val === 'true') {
+      data[key] = true
+    } else if (val === 'false') {
+      data[key] = false
+    } else {
+      data[key] = val.replace(/^["']|["']$/g, '')
+    }
+  }
+
+  return { data, body }
+}
+
+function buildFrontmatterCard(data: FrontmatterData): HTMLElement | null {
+  const entries = Object.entries(data)
+  if (entries.length === 0) return null
+
+  const card = document.createElement('div')
+  card.className = 'mdp-frontmatter'
+
+  for (const [key, val] of entries) {
+    const row = document.createElement('div')
+    row.className = 'mdp-frontmatter__row'
+
+    const label = document.createElement('span')
+    label.className = 'mdp-frontmatter__key'
+    label.textContent = key
+
+    const value = document.createElement('span')
+    value.className = 'mdp-frontmatter__val'
+
+    if (Array.isArray(val)) {
+      val.forEach(tag => {
+        const pill = document.createElement('span')
+        pill.className = 'mdp-frontmatter__tag'
+        pill.textContent = tag
+        value.appendChild(pill)
+      })
+    } else {
+      value.textContent = String(val)
+    }
+
+    row.appendChild(label)
+    row.appendChild(value)
+    card.appendChild(row)
+  }
+
+  return card
+}
+
+function processFrontmatter(viewer: HTMLElement): void {
+  const raw = viewer.dataset.rawSource
+  if (!raw) return
+  const { data } = parseFrontmatter(raw)
+  const card = buildFrontmatterCard(data)
+  if (card) viewer.prepend(card)
+}
+
+// ─── Link previews ────────────────────────────────────────────────────────────
+
+/**
+ * Adds URL preview tooltips to all non-anchor links via a CSS ::after tooltip.
+ * External links also get target="_blank" + rel="noopener noreferrer".
+ */
+function processLinks(viewer: HTMLElement): void {
+  for (const a of viewer.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+    const href = a.getAttribute('href') ?? ''
+    if (!href || href.startsWith('#')) continue
+
+    let display = href
+    try {
+      const url = new URL(href)
+      display = url.hostname + url.pathname.replace(/\/$/, '')
+      if (url.search) display += url.search
+    } catch {
+      // relative URL — show as-is
+    }
+
+    a.classList.add('mdp-link')
+    a.dataset.preview = display
+
+    if (href.startsWith('http')) {
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+    }
+  }
+}
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 
 /**
  * Parse Markdown source and return sanitized HTML.
+ * Strips YAML frontmatter before rendering — the card is injected by decorateViewer.
  * DOMPurify runs even though html:false is set — belt and suspenders.
  */
 export function renderMarkdown(source: string): string {
-  const rawHtml = md.render(source)
+  const { body } = parseFrontmatter(source)
+  const rawHtml = md.render(body)
   return DOMPurify.sanitize(rawHtml, {
-    ADD_ATTR: ['data-lang'],
-    // Allow the mermaid placeholder div and anchor ids through
+    ADD_ATTR: ['data-lang', 'data-preview'],
     FORCE_BODY: false,
   })
 }
@@ -220,8 +338,10 @@ function processTables(viewer: HTMLElement): void {
  * viewer element. Called by injectIntoPreview, overlay, and the standalone viewer page.
  */
 export function decorateViewer(viewer: HTMLElement): void {
+  processFrontmatter(viewer)
   processCallouts(viewer)
   processTables(viewer)
+  processLinks(viewer)
   addCopyButtons(viewer)
   addHeadingAnchors(viewer)
 }

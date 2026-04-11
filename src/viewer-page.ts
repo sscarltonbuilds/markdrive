@@ -20,6 +20,56 @@ const fileId      = params.get('fileId')      ?? ''
 const fileName    = params.get('fileName')    ?? 'Untitled.md'
 const driveTabId  = parseInt(params.get('driveTabId') ?? '', 10)
 
+// ─── Auto-refresh ─────────────────────────────────────────────────────────────
+
+const POLL_INTERVAL = 45_000 // ms
+let lastModifiedTime: string | null = null
+
+type CheckModifiedResponse = { ok: true; modifiedTime: string } | { ok: false; error: string }
+
+function startAutoRefresh(): void {
+  if (!fileId) return
+
+  // Capture baseline modifiedTime
+  chrome.runtime.sendMessage(
+    { type: 'CHECK_MODIFIED', payload: { fileId } },
+    (res: CheckModifiedResponse) => {
+      if (res?.ok) lastModifiedTime = res.modifiedTime
+    }
+  )
+
+  setInterval(() => {
+    chrome.runtime.sendMessage(
+      { type: 'CHECK_MODIFIED', payload: { fileId } },
+      (res: CheckModifiedResponse) => {
+        if (!res?.ok || !lastModifiedTime) return
+        if (res.modifiedTime !== lastModifiedTime) {
+          lastModifiedTime = res.modifiedTime
+          showRefreshBanner()
+        }
+      }
+    )
+  }, POLL_INTERVAL)
+}
+
+function showRefreshBanner(): void {
+  if (document.querySelector('.mdp-refresh-banner')) return
+
+  const banner = document.createElement('div')
+  banner.className = 'mdp-refresh-banner'
+  banner.innerHTML = `
+    <span>File updated in Drive</span>
+    <button class="mdp-refresh-banner__btn">Refresh</button>
+    <button class="mdp-refresh-banner__dismiss" aria-label="Dismiss">✕</button>
+  `
+  banner.querySelector('.mdp-refresh-banner__btn')!
+    .addEventListener('click', () => location.reload())
+  banner.querySelector('.mdp-refresh-banner__dismiss')!
+    .addEventListener('click', () => banner.remove())
+
+  document.body.appendChild(banner)
+}
+
 document.title = `${fileName} — MarkDrive`
 
 const root = document.getElementById('viewer-root')!
@@ -86,6 +136,8 @@ function renderContent(source: string): void {
   })
 
   void renderMermaidBlocks(viewer)
+
+  startAutoRefresh()
 }
 
 function renderError(message: string): void {
