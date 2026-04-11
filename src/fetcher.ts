@@ -1,133 +1,77 @@
 /**
  * Module 02 — File Content Fetching
  *
- * Strategy A: Read raw text from Drive's preview DOM (no API call needed).
- *   Drive renders text files directly in the preview container. We walk the
- *   element looking for a <pre> or dense text node.
+ * Two strategies, split by detection mode:
  *
- * Strategy B: Drive API v3 via chrome.identity (fallback).
- *   Used if Strategy A finds nothing, or if the text in the DOM is clearly
- *   truncated (Drive sometimes shows only the first ~N lines in preview).
- *   Requires manifest.json oauth2 block — see notes below.
+ * Full-tab (/file/d/ID/view)
+ *   Drive renders the file content into a <pre> inside the preview container.
+ *   We watch with a MutationObserver and resolve the instant content arrives.
+ *
+ * Inline preview pane (folder view)
+ *   Drive never populates the container — it stays structurally empty.
+ *   We go straight to the Drive API v3 via the background service worker
+ *   (chrome.identity is not available in content scripts).
  */
 
-// ─── Strategy A: DOM extraction ──────────────────────────────────────────────
+// ─── Full-tab: DOM strategy ───────────────────────────────────────────────────
 
-/**
- * Walk `container` looking for a <pre> element or an iframe whose document
- * contains a <pre> or <body> with plain text.
- */
 function extractFromDom(container: HTMLElement): string | null {
-  // 1. Direct <pre> inside the container
+  // 1. Direct <pre>
   const pre = container.querySelector('pre')
-  if (pre?.textContent) {
-    const text = pre.textContent
-    if (text.trim().length > 0) {
-      console.debug('[MarkDrive] fetcher: Strategy A — found <pre> in container')
-      return text
-    }
-  }
+  if (pre?.textContent?.trim()) return pre.textContent
 
-  // 2. Same-origin iframe (Drive's "texmex" text viewer loads in an iframe)
-  const iframes = container.querySelectorAll<HTMLIFrameElement>('iframe')
-  for (const iframe of iframes) {
+  // 2. Same-origin iframe
+  for (const iframe of container.querySelectorAll<HTMLIFrameElement>('iframe')) {
     try {
       const doc = iframe.contentDocument
       if (!doc) continue
-
-      const iframePre = doc.querySelector('pre')
-      if (iframePre?.textContent?.trim()) {
-        console.debug('[MarkDrive] fetcher: Strategy A — found <pre> in iframe')
-        return iframePre.textContent
-      }
-
-      // Some viewers wrap content in <body> with no <pre>
-      const body = doc.body
-      if (body?.innerText?.trim()) {
-        console.debug('[MarkDrive] fetcher: Strategy A — found body text in iframe')
-        return body.innerText
-      }
+      const text = doc.querySelector('pre')?.textContent?.trim()
+        ?? doc.body?.innerText?.trim()
+      if (text) return text
     } catch {
-      // Cross-origin iframe — skip silently
-    }
-  }
-
-  // 3. Walk immediate children of the container for dense text nodes
-  //    (Drive sometimes renders text directly without a <pre>)
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
-  const chunks: string[] = []
-  let node: Node | null
-  while ((node = walker.nextNode()) !== null) {
-    const text = node.textContent
-    if (text && text.trim().length > 10) chunks.push(text)
-  }
-  if (chunks.length > 0) {
-    const combined = chunks.join('')
-    // Sanity check: Markdown files will have at least one # or - or ` character
-    if (/[#\-`*\[\]]/.test(combined)) {
-      console.debug('[MarkDrive] fetcher: Strategy A — assembled text from DOM text nodes')
-      return combined
+      // Cross-origin — skip
     }
   }
 
   return null
 }
 
-// ─── Strategy B: Drive API v3 (via background service worker) ────────────────
-//
-// chrome.identity is NOT available in content scripts (MV3 restriction).
-// The background service worker handles the actual fetch. See background.ts.
-//
-// If Strategy B is ever needed in production, add to manifest.json:
-//   "permissions": [..., "identity"],
-//   "oauth2": {
-//     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-//     "scopes": ["https://www.googleapis.com/auth/drive.readonly"]
-//   }
-//
-// The client_id comes from Google Cloud Console → APIs & Services →
-// Credentials → Create OAuth 2.0 Client ID (Chrome Extension).
+const DOM_WAIT_MS = 6000
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+function waitForDomContent(container: HTMLElement): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const immediate = extractFromDom(container)
+    if (immediate) { resolve(immediate); return }
 
-/**
- * Fetch the raw Markdown source for a Drive file.
- *
- * Tries Strategy A (DOM) up to MAX_RETRIES times. Drive renders the container
- * before asynchronously populating the <pre> with content, so we need to wait
- * for the text to arrive. Falls back to Strategy B (Drive API via background
- * service worker) only if the DOM never populates.
- */
-const MAX_RETRIES = 6
-const RETRY_DELAY_MS = 400
+    const timeoutId = setTimeout(() => {
+      mo.disconnect()
+      reject(new Error('Timed out waiting for <pre> content'))
+    }, DOM_WAIT_MS)
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+    const mo = new MutationObserver(() => {
+      if (!document.body.contains(container)) {
+        mo.disconnect()
+        clearTimeout(timeoutId)
+        reject(new Error('Preview container detached'))
+        return
+      }
+      const text = extractFromDom(container)
+      if (text) { mo.disconnect(); clearTimeout(timeoutId); resolve(text) }
+    })
+
+    mo.observe(container, { childList: true, subtree: true, characterData: true })
+
+    // Race-check: content may have arrived between the immediate check and observer setup
+    const raceText = extractFromDom(container)
+    if (raceText) { mo.disconnect(); clearTimeout(timeoutId); resolve(raceText) }
+  })
 }
 
-export async function fetchMarkdownContent(
-  fileId: string,
-  previewContainer: HTMLElement
-): Promise<string> {
-  // Strategy A — retry loop: Drive fills the <pre> asynchronously after the
-  // container appears, so the first attempt may find an empty element.
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const domText = extractFromDom(previewContainer)
-    if (domText) return domText
-    console.debug(`[MarkDrive] fetcher: Strategy A attempt ${attempt}/${MAX_RETRIES} — pre empty, waiting…`)
-    await wait(RETRY_DELAY_MS)
-  }
+// ─── Inline: Drive API v3 via background service worker ──────────────────────
+//
+// chrome.identity is MV3-restricted to service workers.
+// The background script owns getAuthToken + the actual fetch.
 
-  // Strategy B — chrome.identity is not available in content scripts (MV3
-  // restriction), so route the request through the background service worker.
-  console.debug('[MarkDrive] fetcher: Strategy A exhausted — falling back to Drive API via background')
-  return fetchViaBackground(fileId)
-}
-
-/**
- * Ask the background service worker to fetch the file via Drive API v3.
- * The background script has access to chrome.identity; the content script does not.
- */
 function fetchViaBackground(fileId: string): Promise<string> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
@@ -143,4 +87,25 @@ function fetchViaBackground(fileId: string): Promise<string> {
       }
     )
   })
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export async function fetchMarkdownContent(
+  fileId: string,
+  previewContainer: HTMLElement,
+  mode: 'inline' | 'full-tab'
+): Promise<string> {
+  // Always fetch via the Drive API — the DOM strategy reads stale <pre> content
+  // when navigating between files because Drive updates the URL/aria-label before
+  // it swaps the <pre> text, so extractFromDom resolves with the previous file.
+  console.debug(`[MarkDrive] fetcher: ${mode} mode → Drive API`)
+  try {
+    return await fetchViaBackground(fileId)
+  } catch (err) {
+    // Last resort: try to pull content straight from Drive's rendered <pre>.
+    // Only useful if auth is missing but Drive already rendered a cached view.
+    console.debug('[MarkDrive] fetcher: API failed, falling back to DOM —', (err as Error).message)
+    return waitForDomContent(previewContainer)
+  }
 }

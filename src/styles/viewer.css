@@ -126,13 +126,33 @@
   line-height: 1.75;
   color: var(--md-color);
   background: var(--md-bg);
-  /* Full width so the background fills the whole container — no bare Drive
-     background showing at the sides. Content stays at 720px via padding. */
-  width: 100%;
   box-sizing: border-box;
   padding: 40px max(32px, calc((100% - 720px) / 2)) 80px;
   word-break: break-word;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Full-tab mode: become our own scroll container ─────────────────────────
+ * Drive's full-tab container is position:fixed with overflow:clip and a fixed
+ * viewport height — there's nothing to scroll. Instead of fighting the parent,
+ * we make the viewer itself the scrollable area.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+.markdrive-viewer[data-mode="full-tab"] {
+  height: 100vh;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* ─── Inline pane: absolute overlay so it sits above Drive's rendered content ── */
+
+.markdrive-viewer[data-mode="inline"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 100%;
+  z-index: 2;
 }
 
 /* ─── Headings ───────────────────────────────────────────────────────────────── */
@@ -334,12 +354,27 @@
 
 /* ─── Tables ─────────────────────────────────────────────────────────────────── */
 
+/* Outer wrapper: position anchor for the expand button */
+.markdrive-viewer .mdp-table-wrap {
+  position: relative;
+  margin-bottom: 1.5em;
+}
+
+/* Scroll layer: horizontal scroll when table overflows content column */
+.markdrive-viewer .mdp-table-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Table itself */
 .markdrive-viewer table {
-  width: 100%;
+  width: auto;
+  min-width: 100%;
   border-collapse: collapse;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 0.9em;
-  margin-bottom: 1.5em;
+  margin-bottom: 0;
   overflow: hidden;
   border-radius: 6px;
   box-shadow: 0 0 0 1px var(--md-table-shadow);
@@ -358,12 +393,14 @@
   font-size: 0.85em;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;   /* never break header text */
 }
 
 .markdrive-viewer td {
   padding: 9px 14px;
   border-bottom: 1px solid var(--md-td-border);
   vertical-align: top;
+  min-width: 80px;       /* prevent extreme column collapse */
 }
 
 .markdrive-viewer tbody tr:last-child td {
@@ -376,6 +413,144 @@
 
 .markdrive-viewer tbody tr:hover {
   background: var(--md-tr-hover-bg);
+}
+
+/* ─── Table expand button ─────────────────────────────────────────────────────── */
+
+.markdrive-viewer .mdp-table-expand {
+  all: unset;
+  position: absolute;
+  top: 4px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #888;
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.12s, color 0.12s, opacity 0.12s;
+  opacity: 0;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.markdrive-viewer .mdp-table-wrap:hover .mdp-table-expand {
+  opacity: 1;
+}
+
+.markdrive-viewer .mdp-table-expand:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: #1a73e8;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .markdrive-viewer:not([data-theme="light"]) .mdp-table-expand:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #6ba7f5;
+  }
+}
+.markdrive-viewer[data-theme="dark"] .mdp-table-expand:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #6ba7f5;
+}
+
+/* ─── Table height clamp + CTA ──────────────────────────────────────────────── */
+
+.markdrive-viewer .mdp-table-wrap--clamped .mdp-table-scroll {
+  max-height: 380px;
+  overflow-y: hidden;
+}
+
+/* Gradient fade — fades to the page background colour automatically */
+.markdrive-viewer .mdp-table-wrap--clamped::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 88px;
+  background: linear-gradient(to bottom, transparent, var(--md-bg));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* "View full table" pill CTA */
+.markdrive-viewer .mdp-table-cta {
+  all: unset;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-link);
+  background: var(--md-bg);
+  border: 1px solid var(--md-border);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  transition: box-shadow 0.12s, background 0.12s;
+  box-sizing: border-box;
+  line-height: 1.4;
+}
+
+.markdrive-viewer .mdp-table-cta:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+  background: var(--md-thead-bg);
+}
+
+/* ─── Sort indicators ────────────────────────────────────────────────────────── */
+
+.markdrive-viewer th.mdp-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.markdrive-viewer th.mdp-sortable:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.markdrive-viewer .mdp-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  vertical-align: middle;
+  opacity: 0;                  /* hidden until hover or sorted */
+  transition: opacity 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+/* Faint hint on hover — just enough to say "this is sortable" */
+.markdrive-viewer th.mdp-sortable:hover .mdp-sort-indicator {
+  opacity: 0.25;
+}
+
+/* Full indicator only when the column is actively sorted */
+.markdrive-viewer th[aria-sort="ascending"] .mdp-sort-indicator,
+.markdrive-viewer th[aria-sort="descending"] .mdp-sort-indicator {
+  opacity: 1;
+  color: var(--md-link);
+}
+
+/* Dark mode sort hover */
+@media (prefers-color-scheme: dark) {
+  .markdrive-viewer:not([data-theme="light"]) th.mdp-sortable:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+.markdrive-viewer[data-theme="dark"] th.mdp-sortable:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* ─── Images ─────────────────────────────────────────────────────────────────── */
@@ -528,3 +703,76 @@
     page-break-inside: avoid;
   }
 }
+
+/* ─── Callout blocks ─────────────────────────────────────────────────────────
+ * GitHub-style > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION]
+ */
+
+.markdrive-viewer .md-callout {
+  margin: 20px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--callout-accent, #888);
+  background: var(--callout-bg, rgba(128,128,128,0.08));
+}
+
+.markdrive-viewer .md-callout__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--callout-accent, #555);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.markdrive-viewer .md-callout__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.markdrive-viewer .md-callout__body p:first-child { margin-top: 0; }
+.markdrive-viewer .md-callout__body p:last-child  { margin-bottom: 0; }
+.markdrive-viewer .md-callout__body {
+  font-size: 15px;
+  color: var(--md-color);
+}
+
+/* Per-type colours */
+.markdrive-viewer .md-callout--note {
+  --callout-accent: #1a73e8;
+  --callout-bg: rgba(26, 115, 232, 0.07);
+}
+.markdrive-viewer .md-callout--tip {
+  --callout-accent: #1e8e3e;
+  --callout-bg: rgba(30, 142, 62, 0.07);
+}
+.markdrive-viewer .md-callout--important {
+  --callout-accent: #9334e6;
+  --callout-bg: rgba(147, 52, 230, 0.07);
+}
+.markdrive-viewer .md-callout--warning {
+  --callout-accent: #e37400;
+  --callout-bg: rgba(227, 116, 0, 0.07);
+}
+.markdrive-viewer .md-callout--caution {
+  --callout-accent: #d93025;
+  --callout-bg: rgba(217, 48, 37, 0.07);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .markdrive-viewer:not([data-theme="light"]) .md-callout--note      { --callout-bg: rgba(26,115,232,0.12); }
+  .markdrive-viewer:not([data-theme="light"]) .md-callout--tip       { --callout-bg: rgba(30,142,62,0.12);  }
+  .markdrive-viewer:not([data-theme="light"]) .md-callout--important { --callout-bg: rgba(147,52,230,0.12); }
+  .markdrive-viewer:not([data-theme="light"]) .md-callout--warning   { --callout-bg: rgba(227,116,0,0.12);  }
+  .markdrive-viewer:not([data-theme="light"]) .md-callout--caution   { --callout-bg: rgba(217,48,37,0.12);  }
+}
+.markdrive-viewer[data-theme="dark"] .md-callout--note      { --callout-bg: rgba(26,115,232,0.12); }
+.markdrive-viewer[data-theme="dark"] .md-callout--tip       { --callout-bg: rgba(30,142,62,0.12);  }
+.markdrive-viewer[data-theme="dark"] .md-callout--important { --callout-bg: rgba(147,52,230,0.12); }
+.markdrive-viewer[data-theme="dark"] .md-callout--warning   { --callout-bg: rgba(227,116,0,0.12);  }
+.markdrive-viewer[data-theme="dark"] .md-callout--caution   { --callout-bg: rgba(217,48,37,0.12);  }

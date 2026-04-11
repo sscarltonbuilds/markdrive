@@ -2,6 +2,7 @@ export interface MarkdownFileDetected {
   fileId: string
   fileName: string
   previewContainer: HTMLElement
+  mode: 'inline' | 'full-tab'
 }
 
 export type DetectionState =

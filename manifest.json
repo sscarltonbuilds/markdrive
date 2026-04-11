@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "MarkDrive",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqgyvbRPP35SmBwX485OfeyfdQ6SmnN24d37nfyKLtDovabeqSgsMH0fzcSD9OfEyvmpAArF+8iN+5JAWk04lrpdvrynJRY8AeLydPEozr5uxAob4fzoFU8nmXQdDiLDvX7fefufHI04FjdAYuKoptojkKqzarndRd19OP8ERzuAC6QTKQx6pR1BSY8OiYqYOdr509kJe6j6mP8Hw+J7ShcEPFAg22gVtCYitTq+uvXpdu7/KrJ9W1YQvGiaUOL3R5gVgIYSTevtHefkxUXPxQwvIgIxxF8FGicY01jmJuTgNpjB+83dW1CVITB2CdDbeaYkhP38rd/g9d0FOzmEFcQIDAQAB",
   "version": "0.1.0",
   "description": "Renders .md files beautifully inside Google Drive's preview pane.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "identity", "tabs"],
   "host_permissions": [
     "https://drive.google.com/*",
     "https://www.googleapis.com/*"
@@ -19,8 +20,26 @@
     "service_worker": "src/background.ts",
     "type": "module"
   },
+  "icons": {
+    "16":  "icon-128.png",
+    "32":  "icon-128.png",
+    "48":  "icon-128.png",
+    "128": "icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer.html", "icon-128.png", "assets/*"],
+      "matches": ["https://drive.google.com/*"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "MarkDrive"
+    "default_title": "MarkDrive",
+    "default_icon": {
+      "16":  "icon-128.png",
+      "32":  "icon-128.png",
+      "48":  "icon-128.png",
+      "128": "icon-128.png"
+    }
   }
 }

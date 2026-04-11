@@ -6,6 +6,7 @@
  */
 
 import Prism from 'prismjs'
+import { escapeHtml } from './utils'
 
 // Core languages (built into prismjs)
 import 'prismjs/components/prism-markup'       // HTML/XML
@@ -63,14 +64,6 @@ export function highlight(code: string, lang: string): string {
     // Never let a highlight failure crash the whole render
     return escapeHtml(code)
   }
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }
 
 /**

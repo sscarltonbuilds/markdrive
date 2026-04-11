@@ -2,8 +2,9 @@
 // Handles requests that content scripts cannot make directly (MV3 restrictions).
 
 // FETCH_FILE: content script asks us to fetch a Drive file via API v3.
-// chrome.identity is only available here, not in content scripts.
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+import { getStoredToken, signIn } from './auth'
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'FETCH_FILE') {
     const { fileId } = message.payload as { fileId: string }
     handleFetchFile(fileId).then(sendResponse).catch((err: Error) => {
@@ -11,12 +12,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })
     return true // keep message channel open for async response
   }
-  // CLAUDE_REQUEST will be added in Module 07
+
+  if (message.type === 'OPEN_VIEWER') {
+    const { fileId, fileName } = message.payload as { fileId: string; fileName: string }
+    const driveTabId = sender.tab?.id
+    let url = chrome.runtime.getURL('viewer.html') +
+      `?fileId=${encodeURIComponent(fileId)}&fileName=${encodeURIComponent(fileName)}`
+    if (driveTabId !== undefined) url += `&driveTabId=${driveTabId}`
+    void chrome.tabs.create({ url })
+    sendResponse({ ok: true })
+    return true
+  }
+
+  if (message.type === 'SWITCH_TO_TAB') {
+    const { tabId } = message.payload as { tabId: number }
+    void chrome.tabs.update(tabId, { active: true })
+    sendResponse({ ok: true })
+    return true
+  }
 })
 
 async function handleFetchFile(fileId: string): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
   try {
-    const token = await getAuthToken()
+    let token = await getStoredToken()
+    if (!token) {
+      const result = await signIn()
+      if ('error' in result) throw new Error(result.error)
+      token = result.token
+    }
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
     if (!res.ok) throw new Error(`Drive API ${res.status}`)
@@ -25,18 +48,6 @@ async function handleFetchFile(fileId: string): Promise<{ ok: true; content: str
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
-}
-
-function getAuthToken(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ interactive: false }, (token) => {
-      if (chrome.runtime.lastError || !token) {
-        reject(new Error(chrome.runtime.lastError?.message ?? 'No auth token'))
-      } else {
-        resolve(token)
-      }
-    })
-  })
 }
 
 export {}

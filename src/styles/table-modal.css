@@ -1,0 +1,156 @@
+/* MarkDrive — Table expand modal */
+
+/* ─── Overlay ────────────────────────────────────────────────────────────────── */
+
+.mdp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  box-sizing: border-box;
+
+  /* Fade in */
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.mdp-modal-overlay--open {
+  opacity: 1;
+}
+
+/* ─── Container ──────────────────────────────────────────────────────────────── */
+
+.mdp-modal-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  width: min(calc(100vw - 48px), 1200px);
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+
+  /* Rise in */
+  transform: translateY(12px);
+  transition: transform 0.18s ease;
+}
+
+.mdp-modal-overlay--open .mdp-modal-container {
+  transform: translateY(0);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────────── */
+
+.mdp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.mdp-modal-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #666;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mdp-modal-close {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.mdp-modal-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #111;
+}
+
+/* ─── Table area ─────────────────────────────────────────────────────────────── */
+
+.mdp-modal-table-wrap {
+  overflow: auto !important;     /* all:revert in .markdrive-viewer resets this to visible */
+  flex: 1 !important;            /* all:revert resets flex to 0 1 auto */
+  min-height: 0 !important;      /* all:revert resets min-height — flex child won't shrink without this */
+  padding: 0 0 28px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  background: #fff !important;
+  color: #1a1a1a !important;
+}
+
+/* Table inside modal fills available width naturally */
+.mdp-modal-table-wrap table {
+  width: auto;
+  min-width: 100%;
+  margin-bottom: 0 !important;
+  /* overflow:hidden on the table (set for border-radius in viewer.css) blocks
+     position:sticky on thead th — remove it in the modal context */
+  overflow: visible !important;
+  border-radius: 0 !important;
+}
+
+/* Sticky header — sticks to the top of the scroll container, not the viewport */
+.mdp-modal-table-wrap thead th {
+  position: sticky !important;   /* all:revert resets position to static */
+  top: 0 !important;
+  z-index: 2 !important;
+  background: var(--md-thead-bg, #f6f8fa) !important;
+  /* box-shadow covers border-collapse bleed from rows scrolling underneath */
+  box-shadow: 0 2px 0 var(--md-th-border, #dde1e7) !important;
+}
+
+/* Ensure cells don't wrap in modal (more space available) */
+.mdp-modal-table-wrap th {
+  white-space: nowrap;
+}
+
+/* ─── Dark mode ──────────────────────────────────────────────────────────────── */
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-container {
+  background: #1e1e1e;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-header {
+  border-bottom-color: #2e2e2e;
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-title {
+  color: #888;
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-close {
+  color: #666;
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eee;
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-table-wrap {
+  background: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+.mdp-modal-overlay[data-theme="dark"] .mdp-modal-table-wrap thead th {
+  background: #2a2a2a !important;
+}

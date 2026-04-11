@@ -1,144 +1,76 @@
 import type { MarkdownFileDetected } from './types'
 
-// ─── URL / file-ID extraction ────────────────────────────────────────────────
-
-/**
- * Extract a Drive file ID from the current URL.
- * Handles:
- *   /file/d/FILE_ID/view          ← direct file view
- *   /open?id=FILE_ID               ← legacy open link
- *   ?usp=sharing&id=FILE_ID        ← sharing URL variant
- */
-function extractFileIdFromUrl(url: string): string | null {
-  const directMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
-  if (directMatch) return directMatch[1]
-
-  const queryMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
-  if (queryMatch) return queryMatch[1]
-
-  return null
-}
-
-/**
- * Extract the file name from the page title.
- * Drive sets the title to "<filename> - Google Drive" when a file is open.
- */
-function extractFileNameFromTitle(): string | null {
-  const title = document.title
-  const match = title.match(/^(.+?)\s+-\s+Google Drive$/)
-  return match ? match[1] : null
-}
-
-/**
- * Returns true if the file name suggests a Markdown file.
- */
-function isMarkdownFileName(name: string): boolean {
-  return /\.md$/i.test(name)
-}
-
-// ─── Preview container detection ─────────────────────────────────────────────
+// ─── Mode detection ───────────────────────────────────────────────────────────
 //
-// Drive is a minified SPA — class names change on every deploy.
-// We only target structural / ARIA attributes that Google must maintain
-// for accessibility. Ordered from most to least specific.
+// Drive's preview container uses [aria-label^="Displaying <filename>"].
+// The trailing period is the exact discriminator between the two modes:
 //
-// ⚠️  These selectors WILL need updating if Drive changes its DOM structure.
-//     When a selector stops working, open DevTools, right-click the raw text
-//     in the preview → Inspect, and update the list below.
-//
-const PREVIEW_CONTAINER_SELECTORS = [
-  // Inline preview pane: aria-label = "Displaying <filename>"
-  '[aria-label^="Displaying "]',
-  // Text-file preview: Drive renders raw content inside a scrollable region
-  '[role="main"] [role="document"]',
-  '[role="main"] [data-id]',
-  // Generic fallback: the labelled region that wraps the file preview
-  '[aria-label*="Preview"]',
-  '[aria-label*="preview"]',
-  // Last-resort: the broadest stable landmark
-  '[role="main"]',
-]
-
-function findPreviewContainer(): HTMLElement | null {
-  for (const selector of PREVIEW_CONTAINER_SELECTORS) {
-    const el = document.querySelector<HTMLElement>(selector)
-    if (el) {
-      console.debug(`[MarkDrive] preview container found via selector: "${selector}"`)
-      return el
-    }
-  }
-  return null
-}
-
-// ─── Preview pane detection (folder view with inline preview open) ────────────
-//
-// When a file is previewed inline (Drive folder view, not opened in its own tab)
-// the URL stays on the folder — no file ID in the URL.
-// We read the file name from the preview container's aria-label instead, and
-// try to recover the file ID from nearby DOM data-id attributes.
+//   "Displaying foo.md"   → full-tab (/file/d/ID/view) — <pre> has content
+//   "Displaying foo.md."  → inline preview pane        — container is always empty
 //
 
-interface PreviewPaneInfo {
-  fileId: string    // real Drive file ID, or a synthetic "preview:<name>" key
+interface PreviewInfo {
   fileName: string
+  fileId: string
+  mode: 'inline' | 'full-tab'
   container: HTMLElement
 }
 
 /**
- * Try to find the real Drive file ID from the DOM when it isn't in the URL.
- * Drive's file-list rows carry data-id attributes; the selected row is our target.
+ * Parse the aria-label from [aria-label^="Displaying "] and return mode + filename.
+ * Returns null if the label doesn't match or the file isn't Markdown.
  */
-function extractFileIdFromDom(container: HTMLElement): string | null {
-  // Walk up from the preview container — sometimes the ID is on an ancestor
-  let el: HTMLElement | null = container
-  while (el && el !== document.body) {
-    const id = el.dataset.id ?? el.getAttribute('data-fileid') ?? el.getAttribute('data-itemid')
-    if (id && /^[a-zA-Z0-9_-]{10,}$/.test(id)) return id
-    el = el.parentElement
+function parseDisplayingLabel(
+  el: HTMLElement
+): { fileName: string; mode: 'inline' | 'full-tab' } | null {
+  const raw = el.getAttribute('aria-label') ?? ''
+
+  // Inline pane: trailing period after the filename
+  const inlineMatch = raw.match(/^Displaying\s+(.+)\.$/)
+  if (inlineMatch) {
+    const fileName = inlineMatch[1].trim()
+    return /\.md$/i.test(fileName) ? { fileName, mode: 'inline' } : null
   }
 
-  // Look for the selected/focused file row in the file list
-  const candidates = [
-    '[aria-selected="true"][data-id]',
-    '[tabindex="0"][data-id]',
-    '[data-id][aria-label*=".md"]',
-  ]
-  for (const sel of candidates) {
-    const row = document.querySelector<HTMLElement>(sel)
-    if (row?.dataset.id) return row.dataset.id
+  // Full-tab: no trailing period
+  const fullTabMatch = raw.match(/^Displaying\s+(.+)$/)
+  if (fullTabMatch) {
+    const fileName = fullTabMatch[1].trim()
+    return /\.md$/i.test(fileName) ? { fileName, mode: 'full-tab' } : null
   }
 
   return null
 }
 
 /**
- * Detect a Markdown file being shown in Drive's inline preview pane.
- * Returns null if no preview pane is open or the file isn't Markdown.
+ * Resolve the file ID for the current preview.
+ *
+ * Inline mode: find the file row by filename first (no dependency on
+ *              aria-selected timing), falling back to the selected row.
+ * Full-tab:    The URL reliably contains /file/d/FILE_ID/.
  */
-function findPreviewPaneInfo(): PreviewPaneInfo | null {
-  // The preview container's aria-label = "Displaying <filename>"
-  const container = document.querySelector<HTMLElement>('[aria-label^="Displaying "]')
-  if (!container) return null
+function resolveFileId(mode: 'inline' | 'full-tab', fileName?: string): string | null {
+  if (mode === 'inline') {
+    // Drive rows have no aria-label — match by text content instead.
+    if (fileName) {
+      const rows = document.querySelectorAll<HTMLElement>('TR[data-id]')
+      for (const row of rows) {
+        if ((row.textContent ?? '').includes(fileName)) {
+          return row.getAttribute('data-id')
+        }
+      }
+    }
+    // Fallback: selected row
+    return document.querySelector<HTMLElement>(
+      'TR[data-id][aria-selected="true"]'
+    )?.getAttribute('data-id') ?? null
+  }
 
-  const ariaLabel = container.getAttribute('aria-label') ?? ''
-  const match = ariaLabel.match(/^Displaying\s+(.+)$/)
-  if (!match) return null
-
-  const fileName = match[1].trim()
-  if (!isMarkdownFileName(fileName)) return null
-
-  // Best effort: find the real file ID. If we can't, use the name as a
-  // dedup key — Strategy A reads from the <pre> in the DOM so never needs it.
-  const realId = extractFileIdFromDom(container)
-  const fileId = realId ?? `preview:${fileName}`
-
-  return { fileId, fileName, container }
+  const m = window.location.href.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+  return m ? m[1] : null
 }
 
 // ─── SPA navigation interception ─────────────────────────────────────────────
-//
-// Drive uses History API push/replaceState for navigation.
-// `popstate` alone is not enough — we also need to patch pushState/replaceState.
 
 type NavCallback = (url: string) => void
 
@@ -170,50 +102,49 @@ function interceptNavigation(onNavigate: NavCallback): () => void {
 // ─── DriveObserver ────────────────────────────────────────────────────────────
 
 export type DetectionCallback = (event: MarkdownFileDetected) => void
+export type FileLeftCallback = () => void
 
 export class DriveObserver {
   private mutationObserver: MutationObserver | null = null
+  private dialogWatcher: MutationObserver | null = null
+  private watchedDialog: Element | null = null
   private teardownNav: (() => void) | null = null
   private lastUrl: string = ''
   private lastDetectedFileId: string = ''
+  private lastDetectedFileName: string = ''
   private pendingCheck: ReturnType<typeof setTimeout> | null = null
   private readonly onDetected: DetectionCallback
+  private readonly onFileLeft?: FileLeftCallback
 
-  constructor(onDetected: DetectionCallback) {
+  constructor(onDetected: DetectionCallback, onFileLeft?: FileLeftCallback) {
     this.onDetected = onDetected
+    this.onFileLeft = onFileLeft
   }
 
   start(): void {
-    console.log('[MarkDrive] DriveObserver starting')
-
-    // Intercept SPA navigation
     this.teardownNav = interceptNavigation((url) => {
       if (url !== this.lastUrl) {
         this.lastUrl = url
-        this.lastDetectedFileId = '' // reset so navigating back to same file re-fires
+        this.lastDetectedFileId = ''
+        this.lastDetectedFileName = ''
         this.scheduleCheck()
       }
     })
 
-    // MutationObserver watches for DOM changes that signal a file preview has loaded
-    this.mutationObserver = new MutationObserver(() => {
-      this.scheduleCheck()
-    })
+    this.mutationObserver = new MutationObserver(() => this.scheduleCheck())
     this.mutationObserver.observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['aria-label', 'role', 'data-id'],
+      attributeFilter: ['aria-label', 'role', 'data-id', 'aria-selected'],
     })
 
-    // Also watch the title — Drive updates it when a file opens
-    const titleObserver = new MutationObserver(() => {
-      this.scheduleCheck()
-    })
     const titleEl = document.querySelector('title')
-    if (titleEl) titleObserver.observe(titleEl, { childList: true })
+    if (titleEl) {
+      const titleObserver = new MutationObserver(() => this.scheduleCheck())
+      titleObserver.observe(titleEl, { childList: true })
+    }
 
-    // Run an initial check in case the page already shows a file
     this.lastUrl = window.location.href
     this.scheduleCheck()
   }
@@ -221,6 +152,9 @@ export class DriveObserver {
   stop(): void {
     this.mutationObserver?.disconnect()
     this.mutationObserver = null
+    this.dialogWatcher?.disconnect()
+    this.dialogWatcher = null
+    this.watchedDialog = null
     this.teardownNav?.()
     this.teardownNav = null
     if (this.pendingCheck !== null) {
@@ -230,9 +164,21 @@ export class DriveObserver {
   }
 
   /**
-   * Debounce checks: Drive fires many mutations in rapid succession.
-   * We wait 300ms after the last mutation before running detection.
+   * Set up a targeted watcher on the preview dialog so we catch Drive
+   * hiding it (via class/style/aria-hidden) without watching every element
+   * on the page — which caused animation noise and spurious fileLeft() calls.
    */
+  private ensureDialogWatched(dialog: Element): void {
+    if (this.watchedDialog === dialog) return
+    this.dialogWatcher?.disconnect()
+    this.watchedDialog = dialog
+    this.dialogWatcher = new MutationObserver(() => this.scheduleCheck())
+    this.dialogWatcher.observe(dialog, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'aria-hidden'],
+    })
+  }
+
   private scheduleCheck(): void {
     if (this.pendingCheck !== null) clearTimeout(this.pendingCheck)
     this.pendingCheck = setTimeout(() => {
@@ -241,42 +187,91 @@ export class DriveObserver {
     }, 300)
   }
 
+  /**
+   * @param isFilenameSwitch true when called because the filename changed in
+   *   the aria-label (file A → file B in same pane). In this case we record
+   *   the stale fileId so resolveFileId can't accidentally re-emit the old
+   *   file while aria-selected is still catching up.
+   *   false (default) when called because the preview was actually closed —
+   *   we do NOT set lastStaleFileId so the same file can be re-opened cleanly.
+   */
+  private fileLeft(): void {
+    this.lastDetectedFileId = ''
+    this.lastDetectedFileName = ''
+    this.onFileLeft?.()
+  }
+
+
   private check(): void {
-    // ── Path 1: Direct file URL (opened in its own tab / full-page preview) ──
-    const url = window.location.href
-    const urlFileId = extractFileIdFromUrl(url)
-    const titleFileName = extractFileNameFromTitle()
+    // Find the preview container — same selector for both modes
+    const el = document.querySelector<HTMLElement>('[aria-label^="Displaying "]')
 
-    if (urlFileId && titleFileName && isMarkdownFileName(titleFileName)) {
-      if (urlFileId === this.lastDetectedFileId) return
-
-      const container = findPreviewContainer()
-      if (!container) {
-        console.debug('[MarkDrive] .md file detected via URL, waiting for preview container…')
-        return
-      }
-
-      this.lastDetectedFileId = urlFileId
-      this.emit({ fileId: urlFileId, fileName: titleFileName, previewContainer: container })
+    // No preview element at all — clean up
+    if (!el) {
+      if (this.lastDetectedFileId) this.fileLeft()
       return
     }
 
-    // ── Path 2: Inline preview pane (folder view, URL stays on folder) ───────
-    const pane = findPreviewPaneInfo()
-    if (!pane) return
+    // Drive keeps the Displaying element in the DOM when the preview pane is
+    // closed (it just hides the dialog via class/style changes). Set up a
+    // targeted watcher on the dialog so those changes trigger check() without
+    // us having to watch every element on the page (which caused animation noise).
+    const dialog = el.closest('[role="dialog"]')
+    if (dialog) {
+      this.ensureDialogWatched(dialog)
+      const s = getComputedStyle(dialog as HTMLElement)
+      if (s.display === 'none' || s.visibility === 'hidden') {
+        if (this.lastDetectedFileId) this.fileLeft()
+        return
+      }
+    }
+    if (el.closest('[aria-hidden="true"]')) {
+      if (this.lastDetectedFileId) this.fileLeft()
+      return
+    }
 
-    if (pane.fileId === this.lastDetectedFileId) return
+    const parsed = parseDisplayingLabel(el)
 
-    this.lastDetectedFileId = pane.fileId
-    this.emit({ fileId: pane.fileId, fileName: pane.fileName, previewContainer: pane.container })
+    // Non-MD file — remove any injected elements and reset
+    if (!parsed) {
+      el.querySelector('.markdrive-viewer')?.remove()
+      el.querySelector('.markdrive-error')?.remove()
+      el.querySelector('.markdrive-toolbar')?.remove()
+      const hiddenPre = el.querySelector<HTMLElement>('pre')
+      if (hiddenPre) hiddenPre.style.display = ''
+      if (this.lastDetectedFileId) this.fileLeft()
+      return
+    }
+
+    const { fileName, mode } = parsed
+
+    // If the filename changed, fire fileLeft immediately so the old button is
+    // removed before we resolve the new fileId.
+    if (fileName !== this.lastDetectedFileName && this.lastDetectedFileName !== '') {
+      this.fileLeft()
+    }
+
+    const fileId = resolveFileId(mode, fileName)
+    if (!fileId) {
+      console.debug(`[MarkDrive] ${mode} mode — could not resolve file ID for "${fileName}"`)
+      return
+    }
+
+    if (fileId === this.lastDetectedFileId && fileName === this.lastDetectedFileName) {
+      // Exactly the same file — re-emit only if Drive replaced the container
+      if (!el.querySelector('.markdrive-viewer')) {
+        console.debug('[MarkDrive] container refreshed for same file — re-rendering')
+        this.emit({ fileId, fileName, previewContainer: el, mode })
+      }
+      return
+    }
+
+    this.lastDetectedFileId = fileId
+    this.lastDetectedFileName = fileName
+    this.emit({ fileId, fileName, previewContainer: el, mode })
   }
 
   private emit(event: MarkdownFileDetected): void {
-    console.log('[MarkDrive] MarkdownFileDetected', {
-      fileId: event.fileId,
-      fileName: event.fileName,
-      previewContainer: event.previewContainer,
-    })
     this.onDetected(event)
   }
 }
