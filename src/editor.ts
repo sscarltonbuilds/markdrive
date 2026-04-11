@@ -122,11 +122,8 @@ export function createEditor(opts: EditorOptions): EditorController {
     setTheme(theme) {
       if (!view || theme === currentTheme) return
       currentTheme = theme
-      view.dispatch({
-        effects: view.state.replaceSelection(''), // trigger re-render hack
-      })
-      // Rebuild the view with new theme
       const source = view.state.doc.toString()
+      const sel    = view.state.selection
       const parent = view.dom.parentElement
       view.destroy()
       if (parent) {
@@ -134,6 +131,7 @@ export function createEditor(opts: EditorOptions): EditorController {
           state: EditorState.create({
             doc: source,
             extensions: buildExtensions(theme),
+            selection: sel,
           }),
           parent,
         })

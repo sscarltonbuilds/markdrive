@@ -232,7 +232,7 @@ function mountEditMode(
   previewViewer.className = 'markdrive-viewer'
   previewViewer.dataset.mode = 'page'
   previewViewer.dataset.rawSource = source
-  previewViewer.setAttribute('data-theme', navbar.getTheme())
+  previewViewer.setAttribute('data-theme', activeTheme)
   previewViewer.innerHTML = renderMarkdown(source)
   decorateViewer(previewViewer)
   previewPane.appendChild(previewViewer)
@@ -250,9 +250,12 @@ function mountEditMode(
   let mermaidDebounce: ReturnType<typeof setTimeout>
   let previewDebounce: ReturnType<typeof setTimeout>
 
+  // Read theme from the HTML attribute — always current, set synchronously by applyTheme()
+  const activeTheme = (document.documentElement.dataset['theme'] as 'light' | 'dark' | undefined) === 'dark' ? 'dark' : 'light'
+
   const editor = createEditor({
     initialSource: source,
-    theme: navbar.getTheme(),
+    theme: activeTheme,
     onChange(newSource) {
       if (!hasUnsaved) {
         hasUnsaved = true
@@ -269,7 +272,7 @@ function mountEditMode(
         previewViewer.style.opacity = '0.85'
         previewViewer.innerHTML = renderMarkdown(newSource)
         previewViewer.dataset.rawSource = newSource
-        previewViewer.setAttribute('data-theme', navbar.getTheme())
+        previewViewer.setAttribute('data-theme', activeTheme)
         decorateViewer(previewViewer)
         clampTallTables(previewViewer)
         requestAnimationFrame(() => { previewViewer.style.opacity = '' })
