@@ -11,7 +11,8 @@ import { EditorState, EditorSelection } from '@codemirror/state'
 import type { Command } from '@codemirror/view'
 import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands'
 import { markdown, commonmarkLanguage } from '@codemirror/lang-markdown'
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import './styles/editor.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,6 +33,43 @@ export interface EditorOptions {
   onChange(source: string): void
   onFirstEdit(): void
 }
+
+// ─── Syntax highlight styles ─────────────────────────────────────────────────
+// One per theme — defaultHighlightStyle colours are designed for white backgrounds.
+
+const LIGHT_HL = HighlightStyle.define([
+  { tag: [tags.heading1, tags.heading2, tags.heading3,
+          tags.heading4,  tags.heading5, tags.heading6],
+    color: '#111', fontWeight: '600' },
+  { tag: tags.heading1, fontSize: '1.1em' },
+  { tag: tags.heading2, fontSize: '1.04em' },
+  { tag: [tags.link, tags.url],   color: '#1a73e8' },
+  { tag: tags.emphasis,            fontStyle: 'italic', color: '#333' },
+  { tag: tags.strong,              fontWeight: '700',   color: '#111' },
+  { tag: tags.monospace,           color: '#c0392b',
+    fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace" },
+  { tag: tags.quote,               color: '#555', fontStyle: 'italic' },
+  { tag: [tags.meta, tags.comment, tags.processingInstruction], color: '#999' },
+  { tag: tags.punctuation,         color: '#aaa' },
+  { tag: tags.invalid,             color: '#dc2626' },
+])
+
+const DARK_HL = HighlightStyle.define([
+  { tag: [tags.heading1, tags.heading2, tags.heading3,
+          tags.heading4,  tags.heading5, tags.heading6],
+    color: '#e2e8f0', fontWeight: '600' },
+  { tag: tags.heading1, fontSize: '1.1em' },
+  { tag: tags.heading2, fontSize: '1.04em' },
+  { tag: [tags.link, tags.url],   color: '#7db5f7' },
+  { tag: tags.emphasis,            fontStyle: 'italic', color: '#c8c8c8' },
+  { tag: tags.strong,              fontWeight: '700',   color: '#e8e8e8' },
+  { tag: tags.monospace,           color: '#f08080',
+    fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace" },
+  { tag: tags.quote,               color: '#8b9bb4', fontStyle: 'italic' },
+  { tag: [tags.meta, tags.comment, tags.processingInstruction], color: '#6b7280' },
+  { tag: tags.punctuation,         color: '#555' },
+  { tag: tags.invalid,             color: '#f87171' },
+])
 
 // ─── CodeMirror theme ────────────────────────────────────────────────────────
 // Matches our CSS variables — no external theme package needed.
@@ -83,7 +121,7 @@ export function createEditor(opts: EditorOptions): EditorController {
       history(),
       EditorView.lineWrapping,
       markdown({ base: commonmarkLanguage }),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      syntaxHighlighting(theme === 'dark' ? DARK_HL : LIGHT_HL, { fallback: true }),
       buildCmTheme(theme),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of((update: ViewUpdate) => {
@@ -303,9 +341,13 @@ let activePanel: HTMLElement | null = null
 
 function closeActivePanel() {
   if (!activePanel) return
-  activePanel.classList.remove('mdp-fmt-panel--open')
-  activePanel.addEventListener('transitionend', () => activePanel?.remove(), { once: true })
+  const closing = activePanel   // capture — activePanel may change before transitionend
   activePanel = null
+  closing.classList.remove('mdp-fmt-panel--open')
+  // Remove after transition; fallback timeout in case transitionend doesn't fire
+  const cleanup = () => { if (!closing.classList.contains('mdp-fmt-panel--open')) closing.remove() }
+  closing.addEventListener('transitionend', cleanup, { once: true })
+  setTimeout(cleanup, 200)
 }
 
 // ── Toolbar builder ───────────────────────────────────────────────────────────
@@ -369,6 +411,7 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       el.addEventListener('mousedown', (e) => {
         e.preventDefault()
+        e.stopPropagation()   // prevent document close-listener from firing on this click
         if (activePanel === panel) { closeActivePanel(); return }
         closeActivePanel()
 
@@ -456,6 +499,7 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       el.addEventListener('mousedown', (e) => {
         e.preventDefault()
+        e.stopPropagation()   // prevent document close-listener from firing on this click
         if (activePanel === panel) { closeActivePanel(); return }
         closeActivePanel()
 
@@ -473,10 +517,9 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
     }
   }
 
-  // Close panels when clicking outside both the toolbar and the open panel
+  // Close panel when clicking anywhere outside it (button clicks are stopped before reaching here)
   document.addEventListener('mousedown', (e) => {
-    const t = e.target as Node
-    if (activePanel && !activePanel.contains(t) && !bar.contains(t)) {
+    if (activePanel && !activePanel.contains(e.target as Node)) {
       closeActivePanel()
     }
   })
