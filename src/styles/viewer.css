@@ -295,6 +295,36 @@
   margin-right: 0.5em;
   transform: translateY(1px);
   accent-color: var(--md-link);
+  transition: transform 0.1s ease;
+}
+
+/* Interactive checkbox in View mode */
+.markdrive-viewer .task-list-item input[type='checkbox']:not([disabled]) {
+  cursor: pointer !important;
+}
+
+.markdrive-viewer .task-list-item input[type='checkbox']:not([disabled]):hover {
+  transform: translateY(1px) scale(1.15);
+}
+
+@keyframes mdp-checkbox-bounce {
+  0%   { transform: translateY(1px) scale(1); }
+  30%  { transform: translateY(1px) scale(0.7); }
+  65%  { transform: translateY(1px) scale(1.25); }
+  85%  { transform: translateY(1px) scale(0.95); }
+  100% { transform: translateY(1px) scale(1); }
+}
+
+.markdrive-viewer .task-list-item input.mdp-checkbox-bounce {
+  animation: mdp-checkbox-bounce 0.28s ease !important;
+}
+
+/* Checked item — fade and strike the label text */
+.markdrive-viewer .task-list-item.mdp-task-checked > *:not(input) {
+  opacity: 0.45;
+  text-decoration: line-through;
+  text-decoration-color: currentColor;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
 }
 
 /* ─── Blockquotes ────────────────────────────────────────────────────────────── */

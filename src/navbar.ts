@@ -101,11 +101,11 @@ export function createNavbar(opts: NavbarOptions): NavbarController {
 
   const readBtn = document.createElement('button')
   readBtn.className = 'mdp-nav__seg mdp-nav__seg--active'
-  readBtn.textContent = 'Read'
+  readBtn.textContent = 'View'
 
   const editBtn = document.createElement('button')
   editBtn.className = 'mdp-nav__seg'
-  editBtn.textContent = 'Edit'
+  editBtn.textContent = 'Source'
 
   let currentMode: 'read' | 'edit' = 'read'
 

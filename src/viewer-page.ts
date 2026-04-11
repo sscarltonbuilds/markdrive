@@ -15,6 +15,7 @@ import { initKeyboardShortcuts, closeShortcutsOverlay } from './keyboard'
 import { initSearch } from './search'
 import { createEditor, buildFormattingToolbar, buildStatusBar } from './editor'
 import type { EditorController, StatusBarController } from './editor'
+import { initViewActions } from './view-actions'
 import { escapeHtml } from './utils'
 import './styles/viewer-page.css'
 import './styles/search.css'
@@ -453,8 +454,15 @@ function showSaveHint(): void {
 
 // ─── Main render ──────────────────────────────────────────────────────────────
 
+let viewActionSaveTimer: ReturnType<typeof setTimeout>
+let cleanupViewActions: (() => void) | null = null
+
 async function renderContent(source: string): Promise<void> {
   root.innerHTML = ''
+
+  // Mutable ref — updated by View-mode quick actions (checkbox toggle etc.)
+  // so that switching to Source mode picks up any in-place edits.
+  let liveSource = source
 
   const viewer = document.createElement('div')
   viewer.className = 'markdrive-viewer'
@@ -483,19 +491,26 @@ async function renderContent(source: string): Promise<void> {
     onModeChange(mode) {
       if (mode === 'edit') {
         viewer.style.display = 'none'
-        mountEditMode(editorInstance ? editorInstance.getValue() : source, navbar, autosaveEnabled)
+        mountEditMode(editorInstance ? editorInstance.getValue() : liveSource, navbar, autosaveEnabled)
         return
       }
 
       // ── Switching to Read ──────────────────────────────────────────────────
       function applyReadMode(displaySource: string) {
         unmountEditMode()
+        liveSource = displaySource
         viewer.style.display = ''
         viewer.innerHTML = renderMarkdown(displaySource)
         viewer.dataset.rawSource = displaySource
         decorateViewer(viewer)
         clampTallTables(viewer)
         void renderMermaidBlocks(viewer)
+        // Re-attach view actions to the refreshed viewer
+        cleanupViewActions?.()
+        cleanupViewActions = initViewActions(viewer, {
+          getSource: () => liveSource,
+          onChange:  handleViewActionChange,
+        })
       }
 
       if (editorDirty) {
@@ -524,6 +539,24 @@ async function renderContent(source: string): Promise<void> {
       }
     },
     tocToggle,
+  })
+
+  // ── View-mode quick-action save handler ───────────────────────────────────
+  function handleViewActionChange(newSource: string) {
+    liveSource = newSource
+    savedSource = newSource   // optimistically mark as saved anchor (save is debounced)
+    viewer.dataset.rawSource = newSource
+    navbar.setUnsaved(true)
+
+    clearTimeout(viewActionSaveTimer)
+    viewActionSaveTimer = setTimeout(async () => {
+      await performSave(newSource, navbar, true)  // skip conflict check for quick actions
+    }, 1500)
+  }
+
+  cleanupViewActions = initViewActions(viewer, {
+    getSource: () => liveSource,
+    onChange:  handleViewActionChange,
   })
 
   initKeyboardShortcuts({

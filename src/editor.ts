@@ -286,6 +286,46 @@ function insertTemplate(template: string, selectFrom: number, selectTo: number):
   }
 }
 
+function insertCodeBlock(lang: string): Command {
+  return (view) => {
+    const { from, to } = view.state.selection.main
+    const selected = view.state.sliceDoc(from, to)
+    const needsBefore = from > 0 && view.state.doc.sliceString(from - 1, from) !== '\n'
+    const fence = `\`\`\`${lang}\n${selected}\n\`\`\``
+    const insert = (needsBefore ? '\n' : '') + fence + '\n'
+    // Place cursor on the blank line inside the fence if no selection
+    const innerStart = from + (needsBefore ? 1 : 0) + lang.length + 4
+    view.dispatch({
+      changes: { from, to, insert },
+      selection: EditorSelection.cursor(selected ? from + insert.length - 4 : innerStart),
+    })
+    view.focus()
+    return true
+  }
+}
+
+function clearFormatting(): Command {
+  return (view) => {
+    const { from, to } = view.state.selection.main
+    if (from === to) return false
+    const selected = view.state.sliceDoc(from, to)
+    const cleaned = selected
+      .replace(/\*\*(.+?)\*\*/gs, '$1')
+      .replace(/\*(.+?)\*/gs,     '$1')
+      .replace(/~~(.+?)~~/gs,     '$1')
+      .replace(/`(.+?)`/gs,       '$1')
+      .replace(/__(.+?)__/gs,     '$1')
+      .replace(/_(.+?)_/gs,       '$1')
+    if (cleaned === selected) return false
+    view.dispatch({
+      changes: { from, to, insert: cleaned },
+      selection: EditorSelection.range(from, from + cleaned.length),
+    })
+    view.focus()
+    return true
+  }
+}
+
 function insertTable(cols: number, rows: number): Command {
   return (view) => {
     const header = '| ' + Array.from({ length: cols }, (_, i) => `Col ${i + 1}`).join(' | ') + ' |'
@@ -307,9 +347,11 @@ function insertTable(cols: number, rows: number): Command {
 // ── Button definitions ────────────────────────────────────────────────────────
 
 const TOOLBAR_BUTTONS: ToolbarButton[] = [
-  { kind: 'action',   label: 'B',     title: 'Bold',        command: wrapSelection('**') },
-  { kind: 'action',   label: 'I',     title: 'Italic',      command: wrapSelection('*') },
-  { kind: 'action',   label: '`',     title: 'Inline code', command: wrapSelection('`') },
+  { kind: 'action', label: 'B',  title: 'Bold',          command: wrapSelection('**') },
+  { kind: 'action', label: 'I',  title: 'Italic',         command: wrapSelection('*') },
+  { kind: 'action', label: 'S',  title: 'Strikethrough',  command: wrapSelection('~~') },
+  { kind: 'action', label: '`',  title: 'Inline code',    command: wrapSelection('`') },
+  { kind: 'action', label: '✕',  title: 'Clear formatting (requires selection)', command: clearFormatting(), separator: true },
   {
     kind: 'dropdown', label: 'H', title: 'Heading', separator: true,
     items: [
@@ -321,15 +363,31 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
       { label: 'Heading 6', sub: '######', command: headingLine(6) },
     ],
   },
-  { kind: 'action', label: '"', title: 'Blockquote', command: prefixLine('> ') },
-  { kind: 'action', label: '—', title: 'Horizontal rule', command: insertTemplate('\n---\n', 1, 1), separator: true },
+  { kind: 'action', label: '"',  title: 'Blockquote',     command: prefixLine('> ') },
+  { kind: 'action', label: '—',  title: 'Horizontal rule', command: insertTemplate('\n---\n', 1, 1), separator: true },
   { kind: 'action', label: 'Link',  title: 'Insert link',  command: insertTemplate('[text](url)',  1,  5) },
   { kind: 'action', label: 'Image', title: 'Insert image', command: insertTemplate('![alt](url)', 2, 5) },
   {
     kind: 'dropdown', label: 'List', title: 'List', separator: true,
     items: [
-      { label: 'Unordered list', sub: '-',  command: prefixLine('- ') },
-      { label: 'Ordered list',   sub: '1.', command: orderedListLine() },
+      { label: 'Unordered list', sub: '-',   command: prefixLine('- ')      },
+      { label: 'Ordered list',   sub: '1.',  command: orderedListLine()      },
+      { label: 'Task item',      sub: '[ ]', command: prefixLine('- [ ] ')  },
+    ],
+  },
+  {
+    kind: 'dropdown', label: '</>',  title: 'Code block', separator: true,
+    items: [
+      { label: 'Plain',       sub: '```',    command: insertCodeBlock('')         },
+      { label: 'JavaScript',  sub: 'js',     command: insertCodeBlock('js')       },
+      { label: 'TypeScript',  sub: 'ts',     command: insertCodeBlock('ts')       },
+      { label: 'Python',      sub: 'py',     command: insertCodeBlock('python')   },
+      { label: 'Bash / Shell', sub: 'sh',    command: insertCodeBlock('bash')     },
+      { label: 'JSON',        sub: 'json',   command: insertCodeBlock('json')     },
+      { label: 'SQL',         sub: 'sql',    command: insertCodeBlock('sql')      },
+      { label: 'CSS',         sub: 'css',    command: insertCodeBlock('css')      },
+      { label: 'HTML',        sub: 'html',   command: insertCodeBlock('html')     },
+      { label: 'Markdown',    sub: 'md',     command: insertCodeBlock('markdown') },
     ],
   },
   { kind: 'tablePicker', label: 'Table', title: 'Insert table' },
