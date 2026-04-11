@@ -24,6 +24,7 @@ export interface NavbarOptions {
 
 export interface NavbarController {
   toggleView:    () => void
+  setActiveMode: (mode: 'read' | 'edit') => void
   setSaveState:  (state: SaveState) => void
   setUnsaved:    (hasChanges: boolean) => void
   getTheme:      () => 'light' | 'dark'
@@ -108,11 +109,16 @@ export function createNavbar(opts: NavbarOptions): NavbarController {
 
   let currentMode: 'read' | 'edit' = 'read'
 
-  function setMode(mode: 'read' | 'edit') {
+  // Updates UI only — no callback (used for cancel/revert from viewer-page)
+  function applyModeUI(mode: 'read' | 'edit') {
     currentMode = mode
     readBtn.classList.toggle('mdp-nav__seg--active', mode === 'read')
     editBtn.classList.toggle('mdp-nav__seg--active', mode === 'edit')
     saveBtn.classList.toggle('mdp-nav__save--visible', mode === 'edit')
+  }
+
+  function setMode(mode: 'read' | 'edit') {
+    applyModeUI(mode)
     opts.onModeChange(mode)
   }
 
@@ -190,6 +196,10 @@ export function createNavbar(opts: NavbarOptions): NavbarController {
       setMode(currentMode === 'read' ? 'edit' : 'read')
     },
 
+    setActiveMode(mode) {
+      applyModeUI(mode)
+    },
+
     setSaveState(state: SaveState) {
       clearTimeout(savedTimer)
       saveBtn.className = `mdp-nav__save mdp-nav__save--visible`
@@ -218,6 +228,7 @@ export function createNavbar(opts: NavbarOptions): NavbarController {
 
     setUnsaved(hasChanges: boolean) {
       unsavedDot.classList.toggle('mdp-nav__unsaved-dot--visible', hasChanges)
+      saveBtn.classList.toggle('mdp-nav__save--primary', hasChanges)
     },
 
     getTheme() {

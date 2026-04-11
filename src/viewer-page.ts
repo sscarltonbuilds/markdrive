@@ -150,6 +150,8 @@ async function performSave(
   )
 
   if (res.ok) {
+    savedSource = content  // anchor clean state to what was just saved
+    editorDirty = false
     navbar.setSaveState('saved')
     navbar.setUnsaved(false)
     // Update our stored modifiedTime after a successful save
@@ -207,6 +209,8 @@ function showConflictDialog(): Promise<'overwrite' | 'discard' | 'cancel'> {
 
 let editorInstance: EditorController | null = null
 let statusBarCtrl: StatusBarController | null = null
+let savedSource: string | null = null   // last-saved content; null until edit mode first mounts
+let editorDirty = false                  // true when editor content !== savedSource
 
 function mountEditMode(
   source: string,
@@ -215,6 +219,10 @@ function mountEditMode(
 ): void {
   // Read theme from the HTML attribute — always current, set synchronously by applyTheme()
   const activeTheme = (document.documentElement.dataset['theme'] as 'light' | 'dark' | undefined) === 'dark' ? 'dark' : 'light'
+
+  // Anchor the "clean" state so undo back to this exact content clears the dirty flag
+  savedSource = source
+  editorDirty = false
 
   // Build split container
   const split = document.createElement('div')
@@ -248,7 +256,6 @@ function mountEditMode(
   root.appendChild(split)
 
   // Editor
-  let hasUnsaved = false
   let autosaveTimer: ReturnType<typeof setTimeout>
   let mermaidDebounce: ReturnType<typeof setTimeout>
   let previewDebounce: ReturnType<typeof setTimeout>
@@ -257,14 +264,18 @@ function mountEditMode(
     initialSource: source,
     theme: activeTheme,
     onChange(newSource) {
-      if (!hasUnsaved) {
-        hasUnsaved = true
-        navbar.setUnsaved(true)
-        navbar.setSaveState('idle')
-        showSaveHint()
+      // Compare against saved state so undo back to clean removes the dirty flag
+      const dirty = newSource !== savedSource
+      if (dirty !== editorDirty) {
+        editorDirty = dirty
+        navbar.setUnsaved(dirty)
+        if (dirty) {
+          navbar.setSaveState('idle')
+          showSaveHint()
+        }
       }
       const cmView = editor.getView()
-      if (cmView) statusBarCtrl?.update(cmView, hasUnsaved)
+      if (cmView) statusBarCtrl?.update(cmView, editorDirty)
 
       // Live preview update (debounced)
       clearTimeout(previewDebounce)
@@ -285,16 +296,10 @@ function mountEditMode(
       // Autosave
       if (autosaveEnabled) {
         clearTimeout(autosaveTimer)
-        autosaveTimer = setTimeout(async () => {
-          await performSave(editor.getValue(), navbar, true)
-          hasUnsaved = false
-          navbar.setUnsaved(false)
-        }, 30_000)
+        autosaveTimer = setTimeout(() => void performSave(editor.getValue(), navbar, true), 30_000)
       }
     },
-    onFirstEdit() {
-      // hint is shown via showSaveHint() which is called in onChange
-    },
+    onFirstEdit() { /* hint shown via showSaveHint() in onChange */ },
   })
 
   editor.mount(editorPane)
@@ -361,9 +366,9 @@ function mountEditMode(
     if (currentRatio) sessionStorage.setItem(`mdp-split-${fileId}`, currentRatio)
   })
 
-  // Unsaved changes warning
+  // Unsaved changes warning (closing tab/browser)
   window.addEventListener('beforeunload', (e) => {
-    if (hasUnsaved) {
+    if (editorDirty) {
       e.preventDefault()
       e.returnValue = 'You have unsaved changes. Leave anyway?'
     }
@@ -383,11 +388,48 @@ function unmountEditMode(): void {
   editorInstance = null
   statusBarCtrl?.destroy()
   statusBarCtrl = null
+  editorDirty = false
 
   document.body.classList.remove('mdp-edit-mode')
   document.querySelector('.mdp-split')?.remove()
   document.querySelector('.mdp-fmt-toolbar')?.remove()
   document.querySelector('.mdp-status-bar')?.remove()
+}
+
+// ─── Leave-without-saving dialog ─────────────────────────────────────────────
+
+function showLeaveDialog(): Promise<'save' | 'discard' | 'cancel'> {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div')
+    overlay.className = 'mdp-conflict-overlay'
+    overlay.innerHTML = `
+      <div class="mdp-conflict-panel">
+        <p class="mdp-conflict-title">Unsaved changes</p>
+        <p class="mdp-conflict-body">
+          You have unsaved changes. Save them before switching to Read mode?
+        </p>
+        <div class="mdp-conflict-actions">
+          <button class="mdp-conflict-btn mdp-conflict-btn--cancel">Keep editing</button>
+          <button class="mdp-conflict-btn mdp-conflict-btn--discard">Discard</button>
+          <button class="mdp-conflict-btn mdp-conflict-btn--overwrite">Save</button>
+        </div>
+      </div>
+    `
+
+    function close(result: 'save' | 'discard' | 'cancel') {
+      overlay.classList.remove('mdp-conflict-overlay--open')
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true })
+      resolve(result)
+    }
+
+    overlay.querySelector('.mdp-conflict-btn--cancel')!.addEventListener('click', () => close('cancel'))
+    overlay.querySelector('.mdp-conflict-btn--discard')!.addEventListener('click', () => close('discard'))
+    overlay.querySelector('.mdp-conflict-btn--overwrite')!.addEventListener('click', () => close('save'))
+
+    document.body.appendChild(overlay)
+    void overlay.offsetHeight
+    overlay.classList.add('mdp-conflict-overlay--open')
+  })
 }
 
 // ─── Save hint toast ──────────────────────────────────────────────────────────
@@ -440,24 +482,40 @@ async function renderContent(source: string): Promise<void> {
     },
     onModeChange(mode) {
       if (mode === 'edit') {
-        // Hide read mode view
         viewer.style.display = 'none'
-        mountEditMode(
-          editorInstance ? editorInstance.getValue() : source,
-          navbar,
-          autosaveEnabled
-        )
-      } else {
-        // Return to read mode — pick up any edits
-        const editedSource = editorInstance?.getValue() ?? source
+        mountEditMode(editorInstance ? editorInstance.getValue() : source, navbar, autosaveEnabled)
+        return
+      }
+
+      // ── Switching to Read ──────────────────────────────────────────────────
+      function applyReadMode(displaySource: string) {
         unmountEditMode()
         viewer.style.display = ''
-        // Re-render with latest content
-        viewer.innerHTML = renderMarkdown(editedSource)
-        viewer.dataset.rawSource = editedSource
+        viewer.innerHTML = renderMarkdown(displaySource)
+        viewer.dataset.rawSource = displaySource
         decorateViewer(viewer)
         clampTallTables(viewer)
         void renderMermaidBlocks(viewer)
+      }
+
+      if (editorDirty) {
+        void showLeaveDialog().then(async result => {
+          if (result === 'cancel') {
+            navbar.setActiveMode('edit')   // revert segmented control
+            return
+          }
+          if (result === 'save') {
+            const content = editorInstance!.getValue()
+            await performSave(content, navbar)
+            if (editorDirty) { navbar.setActiveMode('edit'); return } // save failed
+            applyReadMode(content)
+          } else {
+            // discard — revert to last saved state
+            applyReadMode(savedSource ?? source)
+          }
+        })
+      } else {
+        applyReadMode(editorInstance?.getValue() ?? source)
       }
     },
     onSave() {

@@ -343,7 +343,7 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       const el = document.createElement('button')
       el.className = 'mdp-fmt-btn mdp-fmt-btn--dropdown'
-      el.innerHTML = `${btn.label}<span class="mdp-fmt-caret" aria-hidden="true">▾</span>`
+      el.innerHTML = `${btn.label}<svg class="mdp-fmt-caret" width="8" height="5" viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1,1 4,4 7,1"/></svg>`
       el.title = btn.title
       el.setAttribute('aria-label', btn.title)
       el.setAttribute('type', 'button')
@@ -390,7 +390,7 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
 
       const el = document.createElement('button')
       el.className = 'mdp-fmt-btn mdp-fmt-btn--dropdown'
-      el.innerHTML = `${btn.label}<span class="mdp-fmt-caret" aria-hidden="true">▾</span>`
+      el.innerHTML = `${btn.label}<svg class="mdp-fmt-caret" width="8" height="5" viewBox="0 0 8 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1,1 4,4 7,1"/></svg>`
       el.title = btn.title
       el.setAttribute('aria-label', btn.title)
       el.setAttribute('type', 'button')
@@ -473,9 +473,10 @@ export function buildFormattingToolbar(getView: () => EditorView | null): HTMLEl
     }
   }
 
-  // Close panels when clicking outside the toolbar
+  // Close panels when clicking outside both the toolbar and the open panel
   document.addEventListener('mousedown', (e) => {
-    if (activePanel && !activePanel.contains(e.target as Node)) {
+    const t = e.target as Node
+    if (activePanel && !activePanel.contains(t) && !bar.contains(t)) {
       closeActivePanel()
     }
   })

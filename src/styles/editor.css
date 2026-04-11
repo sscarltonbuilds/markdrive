@@ -189,9 +189,8 @@ html[data-theme="dark"] .mdp-preview-pane {
 }
 
 .mdp-fmt-caret {
-  font-size: 9px;
-  opacity: 0.55;
-  line-height: 1;
+  opacity: 0.5;
+  flex-shrink: 0;
   display: inline-block;
   transform: translateY(1px);
 }
@@ -452,6 +451,29 @@ html[data-theme="dark"] .mdp-status-sep { color: rgba(255, 255, 255, 0.15); }
 .mdp-nav__unsaved-dot--visible {
   opacity: 1;
   transform: scale(1);
+}
+
+/* Primary (blue) state — active when there are unsaved changes */
+.mdp-nav__save--primary {
+  background: #1a73e8 !important;
+  border-color: #1a73e8 !important;
+  color: #fff !important;
+}
+
+.mdp-nav__save--primary:hover {
+  background: #1558b0 !important;
+  border-color: #1558b0 !important;
+}
+
+.mdp-nav--dark .mdp-nav__save--primary {
+  background: #4a90e2 !important;
+  border-color: #4a90e2 !important;
+  color: #fff !important;
+}
+
+.mdp-nav--dark .mdp-nav__save--primary:hover {
+  background: #357abd !important;
+  border-color: #357abd !important;
 }
 
 /* Dark navbar overrides */
