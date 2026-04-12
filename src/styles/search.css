@@ -1,13 +1,14 @@
-/* MarkDrive — In-document search bar */
+/* MarkDrive — In-document search + replace bar */
 
 .mdp-search-bar {
   position: fixed;
   top: 56px; /* below navbar with a gap */
   right: 16px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 7px 10px;
   background: #fff;
   border: 1px solid #dde1e7;
   border-radius: 10px;
@@ -24,6 +25,14 @@
   transform: translateY(0);
   opacity: 1;
   pointer-events: all;
+}
+
+/* ─── Find row ─────────────────────────────────────────────────────────────── */
+
+.mdp-search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mdp-search-input {
@@ -52,7 +61,8 @@
 }
 
 .mdp-search-nav,
-.mdp-search-close {
+.mdp-search-close,
+.mdp-search-replace-toggle {
   all: unset;
   display: flex;
   align-items: center;
@@ -67,12 +77,80 @@
 }
 
 .mdp-search-nav:hover,
-.mdp-search-close:hover {
+.mdp-search-close:hover,
+.mdp-search-replace-toggle:hover {
   background: #f0f0f0;
   color: #111;
 }
 
 .mdp-search-close { font-size: 12px; }
+
+.mdp-search-replace-toggle {
+  font-size: 14px;
+  opacity: 0.6;
+  transition: background 0.1s, color 0.1s, opacity 0.1s;
+}
+
+.mdp-search-replace-toggle:hover { opacity: 1; }
+
+.mdp-search-bar--replace .mdp-search-replace-toggle {
+  background: #e8f0fe;
+  color: #1a73e8;
+  opacity: 1;
+}
+
+/* ─── Replace row ──────────────────────────────────────────────────────────── */
+
+.mdp-search-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.15s ease, opacity 0.15s ease, margin-top 0.15s ease;
+}
+
+.mdp-search-bar--replace .mdp-search-replace-row {
+  max-height: 40px;
+  margin-top: 7px;
+  opacity: 1;
+}
+
+.mdp-replace-input {
+  all: unset;
+  width: 200px;
+  font-size: 13px;
+  color: #1a1a1a;
+  line-height: 1.4;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 2px;
+}
+
+.mdp-replace-input::placeholder { color: #aaa; }
+
+.mdp-replace-btn,
+.mdp-replace-all-btn {
+  all: unset;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #444;
+  border: 1px solid #d8dce3;
+  background: #f8f8f8;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+
+.mdp-replace-btn:hover,
+.mdp-replace-all-btn:hover {
+  background: #eef2fb;
+  color: #1a73e8;
+  border-color: #c5d4f7;
+}
 
 /* ─── Match highlights ─────────────────────────────────────────────────────── */
 
@@ -97,16 +175,38 @@ html[data-theme="dark"] .mdp-search-bar {
   border-color: #333;
 }
 
-html[data-theme="dark"] .mdp-search-input { color: #e0e0e0; }
+html[data-theme="dark"] .mdp-search-input  { color: #e0e0e0; }
+html[data-theme="dark"] .mdp-replace-input { color: #e0e0e0; border-bottom-color: #444; }
+html[data-theme="dark"] .mdp-replace-input::placeholder { color: #666; }
 
 html[data-theme="dark"] .mdp-search-count:not(:empty) {
   border-left-color: #333;
 }
 
 html[data-theme="dark"] .mdp-search-nav:hover,
-html[data-theme="dark"] .mdp-search-close:hover {
+html[data-theme="dark"] .mdp-search-close:hover,
+html[data-theme="dark"] .mdp-search-replace-toggle:hover {
   background: #2a2a2a;
   color: #eee;
+}
+
+html[data-theme="dark"] .mdp-search-bar--replace .mdp-search-replace-toggle {
+  background: #1a2744;
+  color: #5e97f6;
+}
+
+html[data-theme="dark"] .mdp-replace-btn,
+html[data-theme="dark"] .mdp-replace-all-btn {
+  background: #252525;
+  color: #bbb;
+  border-color: #3a3a3a;
+}
+
+html[data-theme="dark"] .mdp-replace-btn:hover,
+html[data-theme="dark"] .mdp-replace-all-btn:hover {
+  background: #1e2a3a;
+  color: #5e97f6;
+  border-color: #2d4270;
 }
 
 html[data-theme="dark"] .markdrive-viewer mark.mdp-search-mark {

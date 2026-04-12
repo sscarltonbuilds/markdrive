@@ -4,17 +4,19 @@
  *   r           — toggle raw / rendered
  *   t           — toggle TOC
  *   Ctrl/Cmd+F  — open search
+ *   Ctrl/Cmd+H  — open find & replace
  *   /           — open search
  *   ?           — show / hide shortcuts cheat sheet
  *   Escape      — close search / overlay
  */
 
 export interface ShortcutHandlers {
-  onToggleRaw:  () => void
-  onToggleToc:  (() => void) | null
-  onOpenSearch: () => void
-  onSave:       (() => void) | null
-  onEscape:     () => void
+  onToggleRaw:   () => void
+  onToggleToc:   (() => void) | null
+  onOpenSearch:  () => void
+  onOpenReplace: () => void
+  onSave:        (() => void) | null
+  onEscape:      () => void
 }
 
 export function initKeyboardShortcuts(handlers: ShortcutHandlers): void {
@@ -30,6 +32,13 @@ export function initKeyboardShortcuts(handlers: ShortcutHandlers): void {
     if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       handlers.onSave?.()
+      return
+    }
+
+    // Ctrl/Cmd+H → find & replace
+    if (e.key === 'h' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      handlers.onOpenReplace()
       return
     }
 
@@ -60,10 +69,11 @@ export function initKeyboardShortcuts(handlers: ShortcutHandlers): void {
 // ─── Shortcuts overlay ────────────────────────────────────────────────────────
 
 const SHORTCUTS = [
-  { key: 'r',        desc: 'Toggle Read / Edit mode' },
+  { key: 'r',        desc: 'Toggle View / Source mode' },
   { key: 't',        desc: 'Toggle table of contents' },
   { key: 'Ctrl + S', desc: 'Save file' },
   { key: 'Ctrl + F', desc: 'Search in document' },
+  { key: 'Ctrl + H', desc: 'Find & replace' },
   { key: '/',        desc: 'Search in document' },
   { key: '?',        desc: 'Show / hide shortcuts' },
   { key: 'Esc',      desc: 'Close search / overlays' },

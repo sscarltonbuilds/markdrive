@@ -477,7 +477,29 @@ async function renderContent(source: string): Promise<void> {
   const showReadTime = await getShowReadTime()
   const autosaveEnabled = await getAutosaveEnabled()
   const readTime = showReadTime ? calcReadTime(source) : undefined
-  const { open: openSearch, close: closeSearch } = initSearch(viewer)
+  function handleSourceChange(newSource: string) {
+    liveSource = newSource
+    viewer.innerHTML = renderMarkdown(newSource)
+    viewer.dataset.rawSource = newSource
+    decorateViewer(viewer)
+    clampTallTables(viewer)
+    void renderMermaidBlocks(viewer)
+    cleanupViewActions?.()
+    cleanupViewActions = initViewActions(viewer, {
+      getSource: () => liveSource,
+      onChange:  handleViewActionChange,
+    })
+    navbar.setUnsaved(true)
+    clearTimeout(viewActionSaveTimer)
+    viewActionSaveTimer = setTimeout(async () => {
+      await performSave(newSource, navbar, true)
+    }, 1500)
+  }
+
+  const { open: openSearch, close: closeSearch, openReplace } = initSearch(viewer, {
+    getSource:  () => liveSource,
+    onReplace:  handleSourceChange,
+  })
 
   const navbar = createNavbar({
     fileName,
@@ -560,9 +582,10 @@ async function renderContent(source: string): Promise<void> {
   })
 
   initKeyboardShortcuts({
-    onToggleRaw:  () => navbar.toggleView(),
-    onToggleToc:  tocToggle,
-    onOpenSearch: openSearch,
+    onToggleRaw:   () => navbar.toggleView(),
+    onToggleToc:   tocToggle,
+    onOpenSearch:  openSearch,
+    onOpenReplace: openReplace,
     onSave: () => {
       if (editorInstance) void performSave(editorInstance.getValue(), navbar)
     },

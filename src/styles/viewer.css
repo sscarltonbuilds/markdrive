@@ -170,6 +170,8 @@
   margin-top: 2em;
   margin-bottom: 0.5em;
   position: relative;
+  /* Clear the fixed navbar when scrolled to via TOC / anchor links */
+  scroll-margin-top: 64px;
 }
 
 .markdrive-viewer h1 {
@@ -325,6 +327,100 @@
   text-decoration: line-through;
   text-decoration-color: currentColor;
   transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+/* ─── Smart list badge (hover to convert plain list to task list) ──────────── */
+
+.markdrive-viewer ul {
+  position: relative;
+}
+
+.markdrive-viewer .mdp-tasklist-badge {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--md-link);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.markdrive-viewer .mdp-tasklist-badge--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.markdrive-viewer .mdp-tasklist-badge:hover {
+  background: rgba(26, 115, 232, 0.15);
+  border-color: rgba(26, 115, 232, 0.4);
+}
+
+/* ─── Inline edit (double-click to edit in place) ───────────────────────────── */
+
+/* Subtle cursor hint on hoverable elements */
+.markdrive-viewer .mdp-inline-editable {
+  position: relative;
+}
+
+.markdrive-viewer .mdp-inline-editable:hover::after {
+  content: '';
+  position: absolute;
+  inset: -2px -4px;
+  border-radius: 4px;
+  border: 1px dashed rgba(26, 115, 232, 0.3);
+  pointer-events: none;
+}
+
+.markdrive-viewer .mdp-inline-editing::after {
+  display: none;  /* hide the dashed outline when editing */
+}
+
+/* The editing textarea */
+.markdrive-viewer .mdp-inline-ta {
+  display: block;
+  width: 100%;
+  min-height: 1.5em;
+  font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--md-color);
+  background: var(--md-pre-bg);
+  border: 2px solid var(--md-link);
+  border-radius: 6px;
+  padding: 6px 10px;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  transition: box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.markdrive-viewer .mdp-inline-ta:focus {
+  box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.25);
+}
+
+/* Flash when source couldn't be located */
+@keyframes mdp-inline-not-found {
+  0%, 100% { background: transparent; }
+  50%       { background: rgba(217, 48, 37, 0.12); }
+}
+
+.markdrive-viewer .mdp-inline-not-found {
+  animation: mdp-inline-not-found 0.5s ease;
+  border-radius: 4px;
 }
 
 /* ─── Blockquotes ────────────────────────────────────────────────────────────── */
