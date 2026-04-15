@@ -21,14 +21,14 @@
     "type": "module"
   },
   "icons": {
-    "16":  "icon-128.png",
-    "32":  "icon-128.png",
-    "48":  "icon-128.png",
+    "16":  "icon-16.png",
+    "32":  "icon-48.png",
+    "48":  "icon-48.png",
     "128": "icon-128.png"
   },
   "web_accessible_resources": [
     {
-      "resources": ["viewer.html", "icon-128.png", "assets/*"],
+      "resources": ["viewer.html", "icon-16.png", "icon-48.png", "icon-128.png", "assets/*"],
       "matches": ["https://drive.google.com/*"]
     }
   ],
@@ -36,9 +36,9 @@
     "default_popup": "popup.html",
     "default_title": "MarkDrive",
     "default_icon": {
-      "16":  "icon-128.png",
-      "32":  "icon-128.png",
-      "48":  "icon-128.png",
+      "16":  "icon-16.png",
+      "32":  "icon-48.png",
+      "48":  "icon-48.png",
       "128": "icon-128.png"
     }
   }
