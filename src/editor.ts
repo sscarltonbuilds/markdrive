@@ -31,7 +31,6 @@ export interface EditorOptions {
   initialSource: string
   theme: 'light' | 'dark'
   onChange(source: string): void
-  onFirstEdit(): void
 }
 
 // ─── Syntax highlight styles ─────────────────────────────────────────────────
@@ -113,7 +112,6 @@ function buildCmTheme(theme: 'light' | 'dark') {
 
 export function createEditor(opts: EditorOptions): EditorController {
   let view: EditorView | null = null
-  let firstEditFired = false
   let currentTheme = opts.theme
 
   function buildExtensions(theme: 'light' | 'dark') {
@@ -126,10 +124,6 @@ export function createEditor(opts: EditorOptions): EditorController {
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       EditorView.updateListener.of((update: ViewUpdate) => {
         if (!update.docChanged) return
-        if (!firstEditFired) {
-          firstEditFired = true
-          opts.onFirstEdit()
-        }
         opts.onChange(update.state.doc.toString())
       }),
     ]

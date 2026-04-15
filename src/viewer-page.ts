@@ -16,7 +16,7 @@ import { initSearch } from './search'
 import { createEditor, buildFormattingToolbar, buildStatusBar } from './editor'
 import type { EditorController, StatusBarController } from './editor'
 import { initViewActions } from './view-actions'
-import { escapeHtml } from './utils'
+import { escapeHtml, getSystemTheme } from './utils'
 import './styles/viewer-page.css'
 import './styles/search.css'
 import './styles/shortcuts.css'
@@ -166,44 +166,59 @@ async function performSave(
   }
 }
 
-// ─── Conflict dialog ──────────────────────────────────────────────────────────
+// ─── Shared dialog helper ─────────────────────────────────────────────────────
 
-function showConflictDialog(): Promise<'overwrite' | 'discard' | 'cancel'> {
+type DialogButton<T extends string> = { label: string; value: T; modifier: string }
+
+function showDialog<T extends string>(
+  title: string,
+  body: string,
+  buttons: DialogButton<T>[]
+): Promise<T> {
   return new Promise(resolve => {
     const overlay = document.createElement('div')
     overlay.className = 'mdp-conflict-overlay'
     overlay.innerHTML = `
       <div class="mdp-conflict-panel">
-        <p class="mdp-conflict-title">File changed in Drive</p>
-        <p class="mdp-conflict-body">
-          This file was modified in Google Drive since you opened it.
-          Saving now will overwrite those changes.
-        </p>
+        <p class="mdp-conflict-title">${title}</p>
+        <p class="mdp-conflict-body">${body}</p>
         <div class="mdp-conflict-actions">
-          <button class="mdp-conflict-btn mdp-conflict-btn--cancel">Cancel</button>
-          <button class="mdp-conflict-btn mdp-conflict-btn--discard">Discard my changes</button>
-          <button class="mdp-conflict-btn mdp-conflict-btn--overwrite">Save anyway</button>
+          ${buttons.map(b =>
+            `<button class="mdp-conflict-btn mdp-conflict-btn--${b.modifier}">${b.label}</button>`
+          ).join('')}
         </div>
       </div>
     `
 
-    function close(result: 'overwrite' | 'discard' | 'cancel') {
+    function close(result: T) {
       overlay.classList.remove('mdp-conflict-overlay--open')
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true })
       resolve(result)
     }
 
-    overlay.querySelector('.mdp-conflict-btn--cancel')!
-      .addEventListener('click', () => close('cancel'))
-    overlay.querySelector('.mdp-conflict-btn--discard')!
-      .addEventListener('click', () => close('discard'))
-    overlay.querySelector('.mdp-conflict-btn--overwrite')!
-      .addEventListener('click', () => close('overwrite'))
+    buttons.forEach(b => {
+      overlay.querySelector(`.mdp-conflict-btn--${b.modifier}`)!
+        .addEventListener('click', () => close(b.value))
+    })
 
     document.body.appendChild(overlay)
     void overlay.offsetHeight
     overlay.classList.add('mdp-conflict-overlay--open')
   })
+}
+
+// ─── Conflict dialog ──────────────────────────────────────────────────────────
+
+function showConflictDialog(): Promise<'overwrite' | 'discard' | 'cancel'> {
+  return showDialog(
+    'File changed in Drive',
+    'This file was modified in Google Drive since you opened it. Saving now will overwrite those changes.',
+    [
+      { label: 'Cancel',            value: 'cancel',    modifier: 'cancel'    },
+      { label: 'Discard my changes',value: 'discard',   modifier: 'discard'   },
+      { label: 'Save anyway',       value: 'overwrite', modifier: 'overwrite' },
+    ]
+  )
 }
 
 // ─── Editor mode wiring ──────────────────────────────────────────────────────
@@ -300,7 +315,6 @@ function mountEditMode(
         autosaveTimer = setTimeout(() => void performSave(editor.getValue(), navbar, true), 30_000)
       }
     },
-    onFirstEdit() { /* hint shown via showSaveHint() in onChange */ },
   })
 
   editor.mount(editorPane)
@@ -315,7 +329,7 @@ function mountEditMode(
       const stored = changes['markdrive_theme'].newValue as string | undefined
       const effective = stored === 'dark' ? 'dark'
         : stored === 'light' ? 'light'
-        : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        : getSystemTheme()
       editor.setTheme(effective)
     }
   }
@@ -400,37 +414,15 @@ function unmountEditMode(): void {
 // ─── Leave-without-saving dialog ─────────────────────────────────────────────
 
 function showLeaveDialog(): Promise<'save' | 'discard' | 'cancel'> {
-  return new Promise(resolve => {
-    const overlay = document.createElement('div')
-    overlay.className = 'mdp-conflict-overlay'
-    overlay.innerHTML = `
-      <div class="mdp-conflict-panel">
-        <p class="mdp-conflict-title">Unsaved changes</p>
-        <p class="mdp-conflict-body">
-          You have unsaved changes. Save them before switching to Read mode?
-        </p>
-        <div class="mdp-conflict-actions">
-          <button class="mdp-conflict-btn mdp-conflict-btn--cancel">Keep editing</button>
-          <button class="mdp-conflict-btn mdp-conflict-btn--discard">Discard</button>
-          <button class="mdp-conflict-btn mdp-conflict-btn--overwrite">Save</button>
-        </div>
-      </div>
-    `
-
-    function close(result: 'save' | 'discard' | 'cancel') {
-      overlay.classList.remove('mdp-conflict-overlay--open')
-      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true })
-      resolve(result)
-    }
-
-    overlay.querySelector('.mdp-conflict-btn--cancel')!.addEventListener('click', () => close('cancel'))
-    overlay.querySelector('.mdp-conflict-btn--discard')!.addEventListener('click', () => close('discard'))
-    overlay.querySelector('.mdp-conflict-btn--overwrite')!.addEventListener('click', () => close('save'))
-
-    document.body.appendChild(overlay)
-    void overlay.offsetHeight
-    overlay.classList.add('mdp-conflict-overlay--open')
-  })
+  return showDialog(
+    'Unsaved changes',
+    'You have unsaved changes. Save them before switching to Read mode?',
+    [
+      { label: 'Keep editing', value: 'cancel',  modifier: 'cancel'    },
+      { label: 'Discard',      value: 'discard', modifier: 'discard'   },
+      { label: 'Save',         value: 'save',    modifier: 'overwrite' },
+    ]
+  )
 }
 
 // ─── Save hint toast ──────────────────────────────────────────────────────────
@@ -636,31 +628,6 @@ function buildSkeleton(): string {
   ).join('')
   return `<div class="mdp-loading">${inner}</div>`
 }
-
-// ─── View crossfade ───────────────────────────────────────────────────────────
-
-function crossfade(outEl: HTMLElement, inEl: HTMLElement): void {
-  const DURATION = 120
-  outEl.style.transition = `opacity ${DURATION}ms ease`
-  outEl.style.opacity = '0'
-  setTimeout(() => {
-    outEl.style.display = 'none'
-    outEl.style.transition = ''
-    outEl.style.opacity = ''
-    inEl.style.opacity = '0'
-    inEl.style.display = inEl.tagName === 'PRE' ? 'block' : ''
-    void inEl.offsetHeight
-    inEl.style.transition = `opacity ${DURATION}ms ease`
-    inEl.style.opacity = '1'
-    setTimeout(() => {
-      inEl.style.transition = ''
-      inEl.style.opacity = ''
-    }, DURATION)
-  }, DURATION)
-}
-
-// crossfade is kept for possible future use (raw pre toggle)
-void crossfade
 
 // ─── Fetch & bootstrap ────────────────────────────────────────────────────────
 

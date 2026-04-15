@@ -1,5 +1,4 @@
-/* MarkDrive — Code block extras: copy button + language badge
- * Base code block styles live in viewer.css.
+/* MarkDrive — Code block chrome: copy button + language badge
  * All selectors scoped to .markdrive-viewer.
  */
 
@@ -64,55 +63,10 @@
   color: #276749;
 }
 
-/* ─── Prism token colours (minimal, readable) ────────────────────────────────── */
-
-.markdrive-viewer .token.comment,
-.markdrive-viewer .token.prolog,
-.markdrive-viewer .token.doctype,
-.markdrive-viewer .token.cdata {
-  color: #6a737d;
-  font-style: italic;
-}
-
-.markdrive-viewer .token.punctuation { color: #586069; }
-
-.markdrive-viewer .token.property,
-.markdrive-viewer .token.tag,
-.markdrive-viewer .token.boolean,
-.markdrive-viewer .token.number,
-.markdrive-viewer .token.constant,
-.markdrive-viewer .token.symbol { color: #005cc5; }
-
-.markdrive-viewer .token.selector,
-.markdrive-viewer .token.attr-name,
-.markdrive-viewer .token.string,
-.markdrive-viewer .token.char,
-.markdrive-viewer .token.builtin { color: #032f62; }
-
-.markdrive-viewer .token.operator,
-.markdrive-viewer .token.entity,
-.markdrive-viewer .token.url,
-.markdrive-viewer .token.variable { color: #d73a49; }
-
-.markdrive-viewer .token.atrule,
-.markdrive-viewer .token.attr-value,
-.markdrive-viewer .token.keyword { color: #d73a49; }
-
-.markdrive-viewer .token.function,
-.markdrive-viewer .token.class-name { color: #6f42c1; }
-
-.markdrive-viewer .token.regex,
-.markdrive-viewer .token.important { color: #e36209; }
-
-.markdrive-viewer .token.important,
-.markdrive-viewer .token.bold { font-weight: bold; }
-
-.markdrive-viewer .token.italic { font-style: italic; }
-
-/* ─── Dark mode (system auto + manual [data-theme="dark"]) ───────────────────── */
+/* ─── Dark mode ──────────────────────────────────────────────────────────────── */
 
 @media (prefers-color-scheme: dark) {
-  .markdrive-viewer:not([data-theme="light"]) .markdrive-code-badge { color: #666; }
+  .markdrive-viewer:not([data-theme="light"]) .markdrive-code-badge { color: #555; }
 
   .markdrive-viewer:not([data-theme="light"]) .markdrive-code-copy {
     background: #2d2d2d;
@@ -128,38 +82,9 @@
     border-color: #2a5a36;
     color: #6dbf8a;
   }
-
-  .markdrive-viewer:not([data-theme="light"]) .token.comment,
-  .markdrive-viewer:not([data-theme="light"]) .token.prolog,
-  .markdrive-viewer:not([data-theme="light"]) .token.doctype,
-  .markdrive-viewer:not([data-theme="light"]) .token.cdata  { color: #8b949e; }
-  .markdrive-viewer:not([data-theme="light"]) .token.punctuation { color: #8b949e; }
-  .markdrive-viewer:not([data-theme="light"]) .token.property,
-  .markdrive-viewer:not([data-theme="light"]) .token.tag,
-  .markdrive-viewer:not([data-theme="light"]) .token.boolean,
-  .markdrive-viewer:not([data-theme="light"]) .token.number,
-  .markdrive-viewer:not([data-theme="light"]) .token.constant,
-  .markdrive-viewer:not([data-theme="light"]) .token.symbol   { color: #79c0ff; }
-  .markdrive-viewer:not([data-theme="light"]) .token.selector,
-  .markdrive-viewer:not([data-theme="light"]) .token.attr-name,
-  .markdrive-viewer:not([data-theme="light"]) .token.string,
-  .markdrive-viewer:not([data-theme="light"]) .token.char,
-  .markdrive-viewer:not([data-theme="light"]) .token.builtin  { color: #a5d6ff; }
-  .markdrive-viewer:not([data-theme="light"]) .token.operator,
-  .markdrive-viewer:not([data-theme="light"]) .token.entity,
-  .markdrive-viewer:not([data-theme="light"]) .token.url,
-  .markdrive-viewer:not([data-theme="light"]) .token.variable { color: #ff7b72; }
-  .markdrive-viewer:not([data-theme="light"]) .token.atrule,
-  .markdrive-viewer:not([data-theme="light"]) .token.attr-value,
-  .markdrive-viewer:not([data-theme="light"]) .token.keyword  { color: #ff7b72; }
-  .markdrive-viewer:not([data-theme="light"]) .token.function,
-  .markdrive-viewer:not([data-theme="light"]) .token.class-name { color: #d2a8ff; }
-  .markdrive-viewer:not([data-theme="light"]) .token.regex,
-  .markdrive-viewer:not([data-theme="light"]) .token.important { color: #ffa657; }
 }
 
-/* Manual dark override — same rules, no media query needed */
-.markdrive-viewer[data-theme="dark"] .markdrive-code-badge { color: #666; }
+.markdrive-viewer[data-theme="dark"] .markdrive-code-badge { color: #555; }
 
 .markdrive-viewer[data-theme="dark"] .markdrive-code-copy {
   background: #2d2d2d;
@@ -176,39 +101,9 @@
   color: #6dbf8a;
 }
 
-.markdrive-viewer[data-theme="dark"] .token.comment,
-.markdrive-viewer[data-theme="dark"] .token.prolog,
-.markdrive-viewer[data-theme="dark"] .token.doctype,
-.markdrive-viewer[data-theme="dark"] .token.cdata  { color: #8b949e; }
-.markdrive-viewer[data-theme="dark"] .token.punctuation { color: #8b949e; }
-.markdrive-viewer[data-theme="dark"] .token.property,
-.markdrive-viewer[data-theme="dark"] .token.tag,
-.markdrive-viewer[data-theme="dark"] .token.boolean,
-.markdrive-viewer[data-theme="dark"] .token.number,
-.markdrive-viewer[data-theme="dark"] .token.constant,
-.markdrive-viewer[data-theme="dark"] .token.symbol   { color: #79c0ff; }
-.markdrive-viewer[data-theme="dark"] .token.selector,
-.markdrive-viewer[data-theme="dark"] .token.attr-name,
-.markdrive-viewer[data-theme="dark"] .token.string,
-.markdrive-viewer[data-theme="dark"] .token.char,
-.markdrive-viewer[data-theme="dark"] .token.builtin  { color: #a5d6ff; }
-.markdrive-viewer[data-theme="dark"] .token.operator,
-.markdrive-viewer[data-theme="dark"] .token.entity,
-.markdrive-viewer[data-theme="dark"] .token.url,
-.markdrive-viewer[data-theme="dark"] .token.variable { color: #ff7b72; }
-.markdrive-viewer[data-theme="dark"] .token.atrule,
-.markdrive-viewer[data-theme="dark"] .token.attr-value,
-.markdrive-viewer[data-theme="dark"] .token.keyword  { color: #ff7b72; }
-.markdrive-viewer[data-theme="dark"] .token.function,
-.markdrive-viewer[data-theme="dark"] .token.class-name { color: #d2a8ff; }
-.markdrive-viewer[data-theme="dark"] .token.regex,
-.markdrive-viewer[data-theme="dark"] .token.important { color: #ffa657; }
-
 /* ─── Print ──────────────────────────────────────────────────────────────────── */
 
 @media print {
   .markdrive-viewer .markdrive-code-badge,
-  .markdrive-viewer .markdrive-code-copy {
-    display: none;
-  }
+  .markdrive-viewer .markdrive-code-copy { display: none; }
 }

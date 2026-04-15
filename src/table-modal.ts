@@ -5,6 +5,7 @@
 
 import './styles/table-modal.css'
 import { initModalTableFeatures } from './table-features'
+import { getSystemTheme } from './utils'
 
 export function openTableModal(table: HTMLTableElement): void {
   // ── Overlay ──────────────────────────────────────────────────────────────────
@@ -52,8 +53,7 @@ export function openTableModal(table: HTMLTableElement): void {
   // Propagate the effective theme onto the markdrive-viewer element so its
   // CSS variables resolve correctly (prevents dark media-query variables
   // overriding a light-mode modal when system pref is dark).
-  const effectiveTheme = document.documentElement.dataset.theme
-    ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  const effectiveTheme = document.documentElement.dataset.theme ?? getSystemTheme()
   tableWrap.setAttribute('data-theme', effectiveTheme)
   tableWrap.appendChild(table.cloneNode(true))
 

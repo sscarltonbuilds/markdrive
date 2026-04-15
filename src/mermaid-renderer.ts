@@ -6,12 +6,14 @@
  * replaces them with rendered SVG.
  */
 
+import { getSystemTheme } from './utils'
+
 export async function renderMermaidBlocks(viewer: HTMLElement): Promise<void> {
   const blocks = viewer.querySelectorAll<HTMLElement>('.markdrive-mermaid')
   if (blocks.length === 0) return
 
   const { default: mermaid } = await import('mermaid')
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const dark = getSystemTheme() === 'dark'
 
   mermaid.initialize({
     startOnLoad: false,

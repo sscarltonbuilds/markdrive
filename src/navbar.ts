@@ -9,6 +9,7 @@
  */
 
 import './styles/navbar.css'
+import { getSystemTheme } from './utils'
 
 type Theme = 'light' | 'dark' | 'system'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -135,10 +136,6 @@ export function createNavbar(opts: NavbarOptions): NavbarController {
   themeBtn.setAttribute('aria-label', 'Toggle light/dark mode')
 
   let effectiveTheme: 'light' | 'dark' = 'light'
-
-  function getSystemTheme(): 'light' | 'dark' {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
 
   function resolveTheme(stored: Theme): 'light' | 'dark' {
     return stored === 'system' ? getSystemTheme() : stored

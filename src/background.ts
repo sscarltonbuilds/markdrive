@@ -145,5 +145,3 @@ async function handleCheckModified(fileId: string): Promise<{ ok: true; modified
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
 }
-
-export {}
