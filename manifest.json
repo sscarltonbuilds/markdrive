@@ -4,7 +4,16 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqgyvbRPP35SmBwX485OfeyfdQ6SmnN24d37nfyKLtDovabeqSgsMH0fzcSD9OfEyvmpAArF+8iN+5JAWk04lrpdvrynJRY8AeLydPEozr5uxAob4fzoFU8nmXQdDiLDvX7fefufHI04FjdAYuKoptojkKqzarndRd19OP8ERzuAC6QTKQx6pR1BSY8OiYqYOdr509kJe6j6mP8Hw+J7ShcEPFAg22gVtCYitTq+uvXpdu7/KrJ9W1YQvGiaUOL3R5gVgIYSTevtHefkxUXPxQwvIgIxxF8FGicY01jmJuTgNpjB+83dW1CVITB2CdDbeaYkhP38rd/g9d0FOzmEFcQIDAQAB",
   "version": "0.1.0",
   "description": "Renders .md files beautifully inside Google Drive's preview pane.",
-  "permissions": ["storage", "identity", "tabs"],
+  "permissions": ["storage", "identity"],
+  "oauth2": {
+    "client_id": "132304572001-k1ei7mljq4jm6chninkjugo5pltr0sji.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.readonly",
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
   "host_permissions": [
     "https://drive.google.com/*",
     "https://www.googleapis.com/*"
