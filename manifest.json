@@ -6,7 +6,7 @@
   "description": "Renders .md files beautifully inside Google Drive's preview pane.",
   "permissions": ["storage", "identity"],
   "oauth2": {
-    "client_id": "132304572001-v2ieuun3s65sekq45t1ergesgm1fftp1.apps.googleusercontent.com",
+    "client_id": "475063314751-135k2ajsdnri0ns0o6cfgtajq9q7atg3.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/drive.readonly",
       "openid",

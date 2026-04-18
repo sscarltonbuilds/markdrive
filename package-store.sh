@@ -6,8 +6,8 @@
 
 set -euo pipefail
 
-DEV_CLIENT="132304572001-v2ieuun3s65sekq45t1ergesgm1fftp1.apps.googleusercontent.com"
-PROD_CLIENT="132304572001-k1ei7mljq4jm6chninkjugo5pltr0sji.apps.googleusercontent.com"
+DEV_CLIENT="475063314751-135k2ajsdnri0ns0o6cfgtajq9q7atg3.apps.googleusercontent.com"
+PROD_CLIENT="475063314751-b5qbs3c85obhlt3eau6n8h71ec6bep01.apps.googleusercontent.com"
 ZIP="markdrive-store.zip"
 
 echo "▶ Building…"
@@ -24,8 +24,8 @@ with open("dist/manifest.json") as f:
 m.pop("key", None)
 
 # Swap to prod OAuth client
-dev  = "132304572001-v2ieuun3s65sekq45t1ergesgm1fftp1.apps.googleusercontent.com"
-prod = "132304572001-k1ei7mljq4jm6chninkjugo5pltr0sji.apps.googleusercontent.com"
+dev  = "475063314751-135k2ajsdnri0ns0o6cfgtajq9q7atg3.apps.googleusercontent.com"
+prod = "475063314751-b5qbs3c85obhlt3eau6n8h71ec6bep01.apps.googleusercontent.com"
 if m.get("oauth2", {}).get("client_id") == dev:
     m["oauth2"]["client_id"] = prod
 
