@@ -33,7 +33,7 @@ function injectTriggerButton(): void {
     const label = displaying?.getAttribute('aria-label') ?? ''
     // Strip the trailing period (inline mode marker)
     const fileNameMatch = label.match(/^Displaying\s+(.+?)\.?$/)
-    const fileName = fileNameMatch?.[1]?.trim() ?? ''
+    let fileName = fileNameMatch?.[1]?.trim() ?? ''
 
     // Drive rows have no aria-label — match by text content instead.
     // By click time Drive has fully settled, so textContent is reliable.
