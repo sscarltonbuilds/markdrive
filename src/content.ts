@@ -53,6 +53,11 @@ function injectTriggerButton(): void {
       const urlMatch = location.href.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
       fileId = selectedRow?.getAttribute('data-id') ?? urlMatch?.[1] ?? ''
     }
+    // Fallback: get filename from page title for direct /file/d/<id>/view tabs
+    if (!fileName) {
+      const titleMatch = document.title.match(/^(.+\.md)\s*[-–—]\s*Google Drive/i)
+      fileName = titleMatch?.[1]?.trim() ?? ''
+    }
 
     if (fileId && fileName) {
       try {

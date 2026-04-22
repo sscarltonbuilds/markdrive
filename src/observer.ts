@@ -206,8 +206,21 @@ export class DriveObserver {
     // Find the preview container — same selector for both modes
     const el = document.querySelector<HTMLElement>('[aria-label^="Displaying "]')
 
-    // No preview element at all — clean up
+    // No preview element at all — try URL+title fallback for direct /file/d/<id>/view tabs
     if (!el) {
+      const urlMatch = window.location.href.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+      const titleMatch = document.title.match(/^(.+\.md)\s*[-–—]\s*Google Drive/i)
+      if (urlMatch && titleMatch) {
+        const fileId  = urlMatch[1]
+        const fileName = titleMatch[1].trim()
+        const sameFile = fileId === this.lastDetectedFileId && fileName === this.lastDetectedFileName
+        if (!sameFile || !document.querySelector('.markdrive-viewer')) {
+          this.lastDetectedFileId  = fileId
+          this.lastDetectedFileName = fileName
+          this.emit({ fileId, fileName, previewContainer: document.body, mode: 'full-tab' })
+        }
+        return
+      }
       if (this.lastDetectedFileId) this.fileLeft()
       return
     }
