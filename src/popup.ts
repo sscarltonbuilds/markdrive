@@ -39,6 +39,9 @@ function showError(msg: string) {
 
 function initSeg(container: HTMLElement, storageKey: string, defaultValue: string, onChange?: (val: string) => void) {
   const btns = [...container.querySelectorAll<HTMLButtonElement>('.seg__btn')]
+  // Guard against the async storage read clobbering a click that arrived
+  // before the callback fired (the popup opens fast but storage is async).
+  let interacted = false
 
   function setActive(value: string) {
     btns.forEach(b => b.classList.toggle('seg__btn--active', b.dataset.value === value))
@@ -46,6 +49,7 @@ function initSeg(container: HTMLElement, storageKey: string, defaultValue: strin
 
   // Load stored value
   chrome.storage.local.get(storageKey, (result) => {
+    if (interacted) return   // user already made a choice — don't overwrite it
     const stored = (result[storageKey] as string | undefined) ?? defaultValue
     setActive(stored)
     onChange?.(stored)
@@ -53,6 +57,7 @@ function initSeg(container: HTMLElement, storageKey: string, defaultValue: strin
 
   btns.forEach(btn => {
     btn.addEventListener('click', () => {
+      interacted = true
       const value = btn.dataset.value ?? defaultValue
       setActive(value)
       const toStore: Record<string, string> = {}

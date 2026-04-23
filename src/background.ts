@@ -124,9 +124,20 @@ async function handleSaveFile(fileId: string, content: string): Promise<{ ok: tr
 async function handleFetchImage(fileId: string): Promise<{ ok: true; dataUrl: string } | { ok: false; error: string }> {
   try {
     let token = await getStoredToken()
-    if (!token) return { ok: false, error: 'Not signed in' }
+    if (!token) {
+      const result = await signIn()
+      if ('error' in result) return { ok: false, error: result.error }
+      token = result.token
+    }
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    if (res.status === 401) {
+      await clearToken()
+      const result = await signIn()
+      if ('error' in result) return { ok: false, error: result.error }
+      token = result.token
+      res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    }
     if (!res.ok) return { ok: false, error: `Drive API ${res.status}` }
     const contentType = res.headers.get('content-type') ?? 'image/jpeg'
     const buffer = await res.arrayBuffer()
@@ -145,7 +156,13 @@ async function handleCheckModified(fileId: string): Promise<{ ok: true; modified
     let token = await getStoredToken()
     if (!token) return { ok: false, error: 'Not signed in' }
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=modifiedTime`
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    // On 401, clear the stale token but don't trigger interactive re-auth
+    // (this runs on a polling interval — a popup would be jarring mid-session)
+    if (res.status === 401) {
+      await clearToken()
+      return { ok: false, error: 'Token expired' }
+    }
     if (!res.ok) return { ok: false, error: `Drive API ${res.status}` }
     const { modifiedTime } = await res.json() as { modifiedTime: string }
     return { ok: true, modifiedTime }

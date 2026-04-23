@@ -28,7 +28,7 @@ async function proxyDriveImage(img: HTMLImageElement, fileId: string): Promise<v
       { type: 'FETCH_IMAGE', payload: { fileId } },
       (res: FetchImageResponse) => {
         img.classList.remove('mdp-img--loading')
-        if (res?.ok) {
+        if (!chrome.runtime.lastError && res?.ok) {
           img.src = res.dataUrl
           img.classList.add('mdp-img--loaded')
         } else {

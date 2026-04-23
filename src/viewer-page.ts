@@ -37,6 +37,7 @@ root.innerHTML = buildSkeleton()
 
 const POLL_INTERVAL = 45_000
 let lastModifiedTime: string | null = null
+let autoRefreshInterval: ReturnType<typeof setInterval> | null = null
 
 type CheckModifiedResponse = { ok: true; modifiedTime: string } | { ok: false; error: string }
 
@@ -45,13 +46,15 @@ function startAutoRefresh(): void {
   chrome.runtime.sendMessage(
     { type: 'CHECK_MODIFIED', payload: { fileId } },
     (res: CheckModifiedResponse) => {
+      if (chrome.runtime.lastError) return
       if (res?.ok) lastModifiedTime = res.modifiedTime
     }
   )
-  setInterval(() => {
+  autoRefreshInterval = setInterval(() => {
     chrome.runtime.sendMessage(
       { type: 'CHECK_MODIFIED', payload: { fileId } },
       (res: CheckModifiedResponse) => {
+        if (chrome.runtime.lastError) return
         if (!res?.ok || !lastModifiedTime) return
         if (res.modifiedTime !== lastModifiedTime) {
           lastModifiedTime = res.modifiedTime
@@ -61,6 +64,15 @@ function startAutoRefresh(): void {
     )
   }, POLL_INTERVAL)
 }
+
+// Clean up the polling interval when the page unloads so the timer
+// doesn't keep firing after the tab is closed or navigated away.
+window.addEventListener('pagehide', () => {
+  if (autoRefreshInterval !== null) {
+    clearInterval(autoRefreshInterval)
+    autoRefreshInterval = null
+  }
+})
 
 function showRefreshBanner(): void {
   if (document.querySelector('.mdp-refresh-banner')) return
@@ -134,10 +146,17 @@ async function performSave(
 ): Promise<void> {
   // Conflict check: if file was modified remotely, warn before overwriting
   if (!skipConflictCheck && lastModifiedTime) {
-    const check = await new Promise<CheckModifiedResponse>(resolve =>
-      chrome.runtime.sendMessage({ type: 'CHECK_MODIFIED', payload: { fileId } }, resolve)
+    const check = await new Promise<CheckModifiedResponse | null>(resolve =>
+      chrome.runtime.sendMessage(
+        { type: 'CHECK_MODIFIED', payload: { fileId } },
+        (r: CheckModifiedResponse) => {
+          if (chrome.runtime.lastError) { resolve(null); return }
+          resolve(r)
+        }
+      )
     )
-    if (check.ok && check.modifiedTime !== lastModifiedTime) {
+    // null means the background worker was unavailable — skip conflict check
+    if (check?.ok && check.modifiedTime !== lastModifiedTime) {
       const shouldProceed = await showConflictDialog()
       if (shouldProceed === 'cancel') return
       if (shouldProceed === 'discard') { location.reload(); return }
@@ -146,9 +165,21 @@ async function performSave(
   }
 
   navbar.setSaveState('saving')
-  const res = await new Promise<SaveFileResponse>(resolve =>
-    chrome.runtime.sendMessage({ type: 'SAVE_FILE', payload: { fileId, content } }, resolve)
+  const res = await new Promise<SaveFileResponse | null>(resolve =>
+    chrome.runtime.sendMessage(
+      { type: 'SAVE_FILE', payload: { fileId, content } },
+      (r: SaveFileResponse) => {
+        if (chrome.runtime.lastError) { resolve(null); return }
+        resolve(r)
+      }
+    )
   )
+
+  if (!res) {
+    navbar.setSaveState('error')
+    console.error('[MarkDrive] Save failed: Extension context unavailable')
+    return
+  }
 
   if (res.ok) {
     savedSource = content  // anchor clean state to what was just saved
@@ -158,7 +189,9 @@ async function performSave(
     // Update our stored modifiedTime after a successful save
     chrome.runtime.sendMessage(
       { type: 'CHECK_MODIFIED', payload: { fileId } },
-      (r: CheckModifiedResponse) => { if (r?.ok) lastModifiedTime = r.modifiedTime }
+      (r: CheckModifiedResponse) => {
+        if (!chrome.runtime.lastError && r?.ok) lastModifiedTime = r.modifiedTime
+      }
     )
   } else {
     navbar.setSaveState('error')
