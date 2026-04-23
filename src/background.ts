@@ -65,7 +65,15 @@ async function handleFetchFile(fileId: string): Promise<{ ok: true; content: str
       token = result.token
     }
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    let res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    // Token expired — clear it, re-auth, and retry once
+    if (res.status === 401) {
+      await clearToken()
+      const result = await signIn()
+      if ('error' in result) throw new Error(result.error)
+      token = result.token
+      res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    }
     if (!res.ok) throw new Error(`Drive API ${res.status}`)
     const content = await res.text()
     return { ok: true, content }
